@@ -1,0 +1,17 @@
+{
+  "description": "SkillStack creator checks — reminds about version bumps after git commits",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/check-version-bump.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

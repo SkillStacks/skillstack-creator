@@ -1,0 +1,6 @@
+{
+  "skillstack": {
+    "type": "http",
+    "url": "https://skillstack-mcp.kennyliao22.workers.dev/mcp"
+  }
+}
