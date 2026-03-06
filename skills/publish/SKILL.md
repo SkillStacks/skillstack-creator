@@ -99,6 +99,43 @@ Ask the creator for:
 
 Store for marketplace.json: `license_provider: "lemonsqueezy"` and `license_config: { "store_id": "<id>" }` (add `"product_id": "<id>"` if provided).
 
+### Step 4b: Configure free tier (optional)
+
+After configuring the license model for a paid plugin, ask:
+
+> "Would you like to offer some skills for free? This lets buyers try your plugin before purchasing — a proven way to increase conversions.
+>
+> Recommended: pick 2-4 skills that showcase your plugin's value without giving away the core."
+
+If the creator says **no**: Skip this step. No `free_skills` field will be added. The plugin will be pure paid.
+
+If the creator says **yes**:
+
+1. List all skill directories in the plugin's `skills/` folder:
+   ```
+   Your plugin has [N] skills:
+     1. write-note
+     2. hook
+     3. title
+     4. plan-video
+     ...
+
+   Which skills should be free? (enter numbers, e.g., "1, 2, 3")
+   ```
+
+2. Confirm their selection:
+   ```
+   Free tier will include: write-note, hook, title
+   Premium (requires license): plan-video, thumbnail, +[N] more
+
+   Look good?
+   ```
+
+3. If confirmed, store the selection for Step 5.
+
+4. If all skills are selected as free, warn:
+   > "You've selected all skills as free — this means the free and paid versions would be identical. Consider keeping at least a few skills premium, or removing the license requirement entirely."
+
 ### Step 5: Update source marketplace.json
 
 Add SkillStack-specific fields to the selected plugins in the existing `.claude-plugin/marketplace.json`. **Do NOT modify any existing fields** — only add new ones.
@@ -117,6 +154,15 @@ Add SkillStack-specific fields to the selected plugins in the existing `.claude-
 The `license_config` keys depend on the provider:
 - **Polar:** `{ "org_id": "<uuid>", "product_id": "<uuid>" }`
 - **Lemon Squeezy:** `{ "store_id": "<id>" }` (optionally include `"product_id": "<id>"`)
+
+**For freemium plugins (paid with a free tier), also add:**
+```json
+{
+  "free_skills": ["write-note", "hook", "title"]
+}
+```
+
+The `free_skills` array contains the exact skill directory names from `skills/`. SkillStack validates these against actual directories during webhook sync — typos are silently dropped, but the `/verify` skill will flag them.
 
 Preserve all existing fields, formatting, and order. The result should look like the creator's original entry plus the provider fields appended.
 
@@ -252,7 +298,7 @@ Show the creator:
 SkillStack setup complete!
 
 Distributed plugins:
-  - <plugin-name> → <org>-<plugin-name> (v<version>, <free|subscription|onetime|lifetime>)
+  - <plugin-name> → <org>-<plugin-name> (v<version>, <free|subscription|onetime|lifetime>[, N free / M total skills])
 
 Source repo: <source-repo-url>
 Storefront: <storefront-repo-url>
