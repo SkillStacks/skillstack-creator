@@ -13,19 +13,17 @@ Creator-facing Claude Code plugin for publishing and managing plugins on SkillSt
 
 Auto-warns on `git commit` if plugin source files changed without a version bump in `marketplace.json`. Friendly confirmation on `git push` that the SkillStack webhook will sync changes. Non-blocking.
 
-## Usage
+## Installation
 
-Load the plugin when working in your plugin source repo:
+Add the marketplace and install the plugin from within Claude Code:
 
-```bash
-claude --plugin-dir <path-to-skillstack-creator>
+```
+/plugin marketplace add SkillStacks/skillstack-creator
+/plugin install skillstack-creator@skillstack-creator
+/reload-plugins
 ```
 
-Or set up a shell alias:
-
-```bash
-alias clcr='claude --plugin-dir ~/projects/skillstack-creator'
-```
+Then navigate to your plugin source repo and run `/publish` to get started.
 
 ## Documentation
 
