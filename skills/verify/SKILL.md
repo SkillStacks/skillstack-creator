@@ -27,6 +27,28 @@ For each plugin in the source manifest, check against the `skillstack_list` resu
 | Version match? | Versions are equal | Source has newer version |
 | License model correct? | Models match | Mismatch |
 
+### Step 3b: Validate free_skills
+
+If the source marketplace.json has a `free_skills` field for any plugin:
+
+1. Read the plugin's `skills/` directory to get actual skill directory names
+2. Compare each entry in `free_skills` against actual directories
+3. Report the results
+
+**If all entries are valid:**
+```
+  Free tier: [N] skills ([list names]) — all valid
+```
+
+**If there are mismatches:**
+```
+  Free tier: WARNING — "[typo-name]" doesn't match any skill directory.
+    Did you mean "[closest-match]"?
+    Valid free skills: [list valid names] ([N] of [M] entries valid)
+```
+
+**If free_skills is empty or not present:** Skip this check.
+
 ### Step 4: Report status
 
 ```
@@ -37,10 +59,12 @@ my-plugin (theailaunchpad-my-plugin)
   Registration: OK
   Version: 1.2.3 (synced)
   License: subscription (correct)
+  Free tier: 3 skills (write-note, hook, title) — all valid
 
 another-plugin (theailaunchpad-another-plugin)
   Registration: NOT FOUND
   Expected version: 1.0.0
+  Free tier: not configured (pure paid)
 
 Overall: 1/2 plugins synced
 ```
