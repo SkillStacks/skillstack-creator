@@ -38,6 +38,17 @@ For each plugin in the source manifest, check against the `skillstack_list` resu
 - Note: the worker auto-normalizes old `license_model` into `license_options` — a plugin with `"license_model": "subscription"` will show as `"license_options": { "subscription": {} }` in SkillStack. This is expected and counts as a match.
 - If the source has `license_options` but SkillStack shows `null`, the webhook likely didn't sync — suggest re-pushing.
 
+**Creator contact check:** For each plugin, check if `creator_contact` is set in the source `marketplace.json`:
+
+- If set: Verify it appears in the `skillstack_list` response for that plugin. Report: `Creator contact: <value> (synced)`
+- If not set: Report a warning:
+  ```
+  Creator contact: NOT SET
+    Buyers who hit license errors won't know how to reach you.
+    Add "creator_contact": "your-email@example.com" to your plugin entry in marketplace.json.
+  ```
+  This is a warning, not an error — the plugin works without it.
+
 ### Step 3b: Validate free_skills
 
 If the source marketplace.json has a `free_skills` field for any plugin:
@@ -96,6 +107,7 @@ my-plugin (theailaunchpad-my-plugin)
   License: subscription (correct)
   License options: { subscription: {} } (synced)
   Free tier: 3 skills (write-note, hook, title) — all valid
+  Creator contact: support@example.com (synced)
 
 multi-license-plugin (theailaunchpad-multi-license-plugin)
   Registration: OK
@@ -103,11 +115,13 @@ multi-license-plugin (theailaunchpad-multi-license-plugin)
   License: lifetime (correct — derived from license_options)
   License options: { onetime: { benefit_id: "ben_..." }, lifetime: { benefit_id: "ben_..." } } (synced)
   Free tier: not configured (pure paid)
+  Creator contact: https://discord.gg/example (synced)
 
 another-plugin (theailaunchpad-another-plugin)
   Registration: NOT FOUND
   Expected version: 1.0.0
   Free tier: not configured (pure paid)
+  Creator contact: NOT SET (recommended for paid plugins)
 
 Storefront: all 2 distributed plugins listed
 
