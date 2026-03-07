@@ -201,6 +201,18 @@ If the creator says **yes**:
 4. If all skills are selected as free, warn:
    > "You've selected all skills as free — this means the free and paid versions would be identical. Consider keeping at least a few skills premium, or removing the license requirement entirely."
 
+### Step 4c: Set creator contact (optional)
+
+Ask the creator:
+
+> "Would you like to provide a support contact for buyers? This is shown when buyers encounter license issues — it helps them reach you directly instead of filing GitHub issues.
+>
+> You can provide an **email address** or a **URL** (e.g., Discord invite, support page)."
+
+- If **yes**: Store the value for Step 5. Validate it looks like an email (contains `@`) or a URL (starts with `http`).
+- If **no**: Skip. Buyers will be directed to the GitHub repo for issues.
+- If **already set** (check existing marketplace.json for `creator_contact`): Show current value and ask if they want to update it.
+
 ### Step 5: Update source marketplace.json
 
 Add SkillStack-specific fields to the selected plugins in the existing `.claude-plugin/marketplace.json`. **Do NOT modify any existing fields** — only add new ones (or replace previously-set SkillStack fields when reconfiguring).
@@ -212,7 +224,8 @@ Add SkillStack-specific fields to the selected plugins in the existing `.claude-
 {
   "license_provider": "<polar|lemonsqueezy>",
   "license_config": { "org_id": "...", "product_id": "..." },
-  "license_model": "<subscription|onetime|lifetime>"
+  "license_model": "<subscription|onetime|lifetime>",
+  "creator_contact": "<email-or-url>"
 }
 ```
 
@@ -260,6 +273,15 @@ Lemon Squeezy example (onetime + lifetime):
 ```
 
 The `free_skills` array contains the exact skill directory names from `skills/`. SkillStack validates these against actual directories during webhook sync — typos are silently dropped, but the `/verify` skill will flag them.
+
+**For all paid plugins, optionally add:**
+```json
+{
+  "creator_contact": "support@example.com"
+}
+```
+
+This is shown to buyers when they encounter license configuration errors, so they can reach you directly. Can be an email or URL (e.g., Discord invite link).
 
 Preserve all existing fields, formatting, and order. The result should look like the creator's original entry plus the provider fields appended.
 
