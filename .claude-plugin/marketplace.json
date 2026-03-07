@@ -9,7 +9,7 @@
       "name": "skillstack-creator",
       "source": "./",
       "description": "Publish and manage Claude Code plugins on SkillStack. Handles marketplace.json generation, payment provider integration, storefront management, and version publishing.",
-      "version": "0.1.0"
+      "version": "0.2.0"
     }
   ]
 }

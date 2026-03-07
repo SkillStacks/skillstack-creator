@@ -27,13 +27,23 @@ Plugins in this repo:
   3. test-runner — v1.0.0 (not on SkillStack)
 ```
 
-If all plugins are already connected, tell the creator everything is set up and suggest running **verify** if they're having issues.
+If all plugins are already connected, ask the creator:
+
+> "All plugins are already on SkillStack. What would you like to do?"
+>
+> 1. **Reconfigure licensing** — change license model, switch providers, or add multi-license options for an existing plugin
+> 2. **Run /verify** — check that everything is synced correctly
+> 3. **Nothing** — everything looks good
+
+If the creator chooses **Reconfigure licensing**, show the list of connected plugins and ask which one to update. Then proceed to Step 3 (pricing model) for that plugin, treating it as a new configuration. The updated fields will overwrite the previous values in marketplace.json when Step 5 runs.
 
 ### Step 2: Select plugins to distribute
 
 Ask the creator: **Which plugins do you want to distribute on SkillStack?**
 
 Only show plugins that aren't already connected. They can select one, multiple, or all. For each selected plugin, proceed through Steps 3-4.
+
+**Note:** If the creator chose "Reconfigure licensing" in Step 1, show the already-connected plugins instead and let them select which to reconfigure. Proceed through Steps 3-4 as normal — the updated config will replace the existing values in Step 5.
 
 ### Step 3: Determine pricing model
 
@@ -52,52 +62,107 @@ Ask: **Which payment provider are you using?**
 
 ### Step 4: Configure paid plugin
 
+Ask: **Do you want to offer a single license type, or multiple types (e.g., one-time purchase + lifetime)?**
+
+#### Single license type
+
 Ask: **What license model?**
 
 - `subscription` — buyer pays recurring, loses access if cancelled
 - `onetime` — buyer pays once, gets version at time of purchase (no future updates)
 - `lifetime` — buyer pays once, gets all future updates included
 
-Then gather provider-specific IDs from the creator.
+Then gather provider-specific IDs (see provider paths below).
+
+#### Multiple license types (multi-license)
+
+Ask: **Which license types do you want to offer?** (select all that apply)
+
+- `subscription` — recurring payment
+- `onetime` — one-time, version-locked
+- `lifetime` — one-time, all future updates
+
+The creator must select at least 2. For each selected type, the creator needs a **separate product or benefit** in their payment provider (see provider paths below).
+
+> **Why separate products/benefits?** SkillStack auto-detects which license type a buyer purchased by matching their key against each option's provider identifier. This requires distinct identifiers per license type.
 
 #### Polar path
 
 The Polar API requires authentication, so all IDs must be copied manually from the dashboard.
 
-Ask the creator for these two values:
+**For all configurations, ask for:**
 
 1. **Polar Organization ID** (UUID format):
    > Go to **polar.sh → Settings → General**. The Organization ID is displayed on that page.
    > Example: `0c504f49-dbdd-496a-8a36-72ce2a94d97f`
 
+Validate it is UUID format (8-4-4-4-12 hex pattern). If not, ask the creator to double-check.
+
+**For single license type, also ask for:**
+
 2. **Polar Product ID** (UUID format):
    > Go to **polar.sh → Products → click the product for this plugin**. The Product ID is in the URL: `polar.sh/products/<product-id>`.
-
-Validate both are UUID format (8-4-4-4-12 hex pattern). If not, ask the creator to double-check.
 
 3. **Confirm License Key benefit exists.** Ask the creator:
    > "Does this product have a **License Key** benefit configured? SkillStack uses license keys for access control. You can check at polar.sh → Products → your product → Benefits."
 
-   If no license key benefit exists:
-   > "Add a License Key benefit to this product in Polar before continuing. See the SkillStack Creator Guide for setup details."
+Store for marketplace.json: `license_provider: "polar"`, `license_config: { "org_id": "<uuid>", "product_id": "<uuid>" }`, and `license_model: "<type>"`.
 
-Store for marketplace.json: `license_provider: "polar"` and `license_config: { "org_id": "<uuid>", "product_id": "<uuid>" }`.
+**For multi-license, ask for each selected license type:**
+
+2. **Benefit ID** for each license type:
+   > "For each license type, you need a separate License Key benefit in Polar — one per product or one per benefit on a single product.
+   >
+   > Go to **polar.sh → Products → your product → Benefits**. Click the License Key benefit and copy the Benefit ID from the URL or details page.
+   >
+   > If you have separate products per license type, each product's License Key benefit has its own Benefit ID."
+
+   Collect a `benefit_id` (UUID) for each selected license type. Example:
+   ```
+   License types you selected: onetime, lifetime
+
+   Enter the Benefit ID for onetime:  > ben_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+   Enter the Benefit ID for lifetime: > ben_yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
+   ```
+
+   Validate each is UUID format.
+
+Store for marketplace.json: `license_provider: "polar"`, `license_config: { "org_id": "<uuid>" }`, and `license_options` (see Step 5).
 
 #### Lemon Squeezy path
 
-Ask the creator for:
+**For all configurations, ask for:**
 
 1. **Store ID** (integer):
    > Go to **app.lemonsqueezy.com → Settings → General**. The Store ID is displayed on that page.
 
-2. **Product ID** (optional, integer):
+2. **Confirm License Key is enabled.** Ask the creator:
+   > "Is your Lemon Squeezy product configured to generate license keys? Check at Products → your product → License keys."
+
+**For single license type, also ask for:**
+
+3. **Product ID** (optional, integer):
    > Go to **app.lemonsqueezy.com → Products → click the product**. The Product ID is in the URL.
    > This is optional but recommended for cross-product verification.
 
-3. **Confirm License Key is enabled.** Ask the creator:
-   > "Is your Lemon Squeezy product configured to generate license keys? Check at Products → your product → License keys."
+Store for marketplace.json: `license_provider: "lemonsqueezy"`, `license_config: { "store_id": "<id>" }` (add `"product_id": "<id>"` if provided), and `license_model: "<type>"`.
 
-Store for marketplace.json: `license_provider: "lemonsqueezy"` and `license_config: { "store_id": "<id>" }` (add `"product_id": "<id>"` if provided).
+**For multi-license, ask for each selected license type:**
+
+3. **Product ID** for each license type (required for multi-license):
+   > "For multi-license, each license type needs a separate product in Lemon Squeezy — SkillStack uses the Product ID to detect which type the buyer purchased.
+   >
+   > Go to **app.lemonsqueezy.com → Products → click each product**. The Product ID is in the URL."
+
+   Collect a `product_id` for each selected license type. Example:
+   ```
+   License types you selected: onetime, lifetime
+
+   Enter the Product ID for onetime:  > 12345
+   Enter the Product ID for lifetime: > 67890
+   ```
+
+Store for marketplace.json: `license_provider: "lemonsqueezy"`, `license_config: { "store_id": "<id>" }`, and `license_options` (see Step 5).
 
 ### Step 4b: Configure free tier (optional)
 
@@ -138,11 +203,11 @@ If the creator says **yes**:
 
 ### Step 5: Update source marketplace.json
 
-Add SkillStack-specific fields to the selected plugins in the existing `.claude-plugin/marketplace.json`. **Do NOT modify any existing fields** — only add new ones.
+Add SkillStack-specific fields to the selected plugins in the existing `.claude-plugin/marketplace.json`. **Do NOT modify any existing fields** — only add new ones (or replace previously-set SkillStack fields when reconfiguring).
 
 **For free plugins:** No changes needed. The existing entry works as-is.
 
-**For paid plugins, add these fields to the plugin entry:**
+**For paid plugins with a single license type, add these fields to the plugin entry:**
 ```json
 {
   "license_provider": "<polar|lemonsqueezy>",
@@ -155,6 +220,38 @@ The `license_config` keys depend on the provider:
 - **Polar:** `{ "org_id": "<uuid>", "product_id": "<uuid>" }`
 - **Lemon Squeezy:** `{ "store_id": "<id>" }` (optionally include `"product_id": "<id>"`)
 
+**For paid plugins with multiple license types, use `license_options` instead of `license_model`:**
+
+Polar example (onetime + lifetime):
+```json
+{
+  "license_provider": "polar",
+  "license_config": { "org_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" },
+  "license_options": {
+    "onetime": { "benefit_id": "ben_aaaa-..." },
+    "lifetime": { "benefit_id": "ben_bbbb-..." }
+  }
+}
+```
+
+Lemon Squeezy example (onetime + lifetime):
+```json
+{
+  "license_provider": "lemonsqueezy",
+  "license_config": { "store_id": "306756" },
+  "license_options": {
+    "onetime": { "product_id": "12345" },
+    "lifetime": { "product_id": "67890" }
+  }
+}
+```
+
+**Key rules for `license_options`:**
+- Valid keys: `"subscription"`, `"onetime"`, `"lifetime"` — invalid keys are silently dropped by the webhook
+- Each key maps to an object with provider-specific identifiers (`benefit_id` for Polar, `product_id` for Lemon Squeezy)
+- Do NOT include `license_model` when using `license_options` — the worker auto-derives it (highest tier wins: lifetime > subscription > onetime)
+- Single-license plugins can use either `license_model` or `license_options` with one entry — both work
+
 **For freemium plugins (paid with a free tier), also add:**
 ```json
 {
@@ -166,7 +263,7 @@ The `free_skills` array contains the exact skill directory names from `skills/`.
 
 Preserve all existing fields, formatting, and order. The result should look like the creator's original entry plus the provider fields appended.
 
-**Backward compatibility:** Old format with `polar_org_id`/`polar_product_id` at the top level still works — the webhook handles both formats.
+**Backward compatibility:** Old format with `polar_org_id`/`polar_product_id` at the top level still works — the webhook handles both formats. Old `license_model` format is auto-normalized to `license_options` by the webhook.
 
 ### Step 6: Install GitHub App
 
@@ -263,7 +360,7 @@ Create `.skillstack-creator.json` in the source repo root:
 }
 ```
 
-This persists across sessions so other skills (publish, sync-storefront) know where to find things.
+This persists across sessions so the publish and verify skills know where to find things.
 
 ### Step 9: Commit and push source repo
 
@@ -282,7 +379,7 @@ Wait ~5 seconds for the webhook to fire, then call the `skillstack_list` MCP too
 Check that each distributed plugin appears with:
 - Correct slug (`<org>-<plugin-name>`)
 - Correct version
-- Correct license model
+- Correct license model (or `license_options` for multi-license)
 
 If a plugin doesn't appear:
 - Check that the GitHub App is installed on this repo
@@ -298,7 +395,7 @@ Show the creator:
 SkillStack setup complete!
 
 Distributed plugins:
-  - <plugin-name> → <org>-<plugin-name> (v<version>, <free|subscription|onetime|lifetime>[, N free / M total skills])
+  - <plugin-name> → <org>-<plugin-name> (v<version>, <free|subscription|onetime|lifetime|multi-license: onetime+lifetime>[, N free / M total skills])
 
 Source repo: <source-repo-url>
 Storefront: <storefront-repo-url>
