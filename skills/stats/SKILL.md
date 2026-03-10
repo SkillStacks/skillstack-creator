@@ -1,6 +1,6 @@
 ---
 name: stats
-description: View analytics for your SkillStack plugins — installs, activations, unique buyers, and free/paid split.
+description: View analytics for your SkillStack plugins — installs, active buyers, and free/paid split.
 ---
 
 ## View Creator Analytics
@@ -37,16 +37,21 @@ If the response contains `"error": "authentication_required"`, inform the creato
 
 ### Step 3: Display results
 
-Format the response as a readable summary:
+**Metric definitions (use these EXACTLY when rendering):**
+- **Active Buyers** = `active_buyers` — unique people who activated a license (from `user_tokens`). All paid by definition.
+- **Total Installs** = `total_installs` — number of plugin downloads (counts events, not people)
+- **Paid** = `paid_installs` — downloads by licensed users
+- **Free** = `free_installs` — downloads by free-tier users
+
+Format the response as a readable dashboard:
 
 **If single plugin:**
 ```
 Analytics for <plugin-name> (<period>)
 ======================================
 
+  Active buyers:  <active_buyers>
   Installs:       <total_installs> (<paid_installs> paid, <free_installs> free)
-  Unique buyers:  <unique_buyers>
-  Activations:    <activations>
   Update checks:  <update_checks>
 ```
 
@@ -56,18 +61,19 @@ Analytics for your plugins (<period>)
 =====================================
 
 Summary:
+  Active buyers:   <active_buyers>
   Total installs:  <total_installs> (<paid_installs> paid, <free_installs> free)
-  Unique buyers:   <unique_buyers>
-  Activations:     <activations>
   Update checks:   <update_checks>
 
 By plugin:
   <plugin-1-name>
-    Installs: <total> (<paid> paid, <free> free) | Buyers: <unique> | Activations: <act>
+    Active buyers: <active_buyers> | Installs: <total> (<paid> paid, <free> free)
 
   <plugin-2-name>
-    Installs: <total> (<paid> paid, <free> free) | Buyers: <unique> | Activations: <act>
+    Active buyers: <active_buyers> | Installs: <total> (<paid> paid, <free> free)
 ```
+
+**Important:** Use `active_buyers` for the "Active Buyers" metric. Do NOT use `unique_buyers` or `activations` for this — those are different metrics kept for backward compatibility.
 
 ### Step 4: Offer next steps
 
