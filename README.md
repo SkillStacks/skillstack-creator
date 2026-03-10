@@ -21,10 +21,9 @@ Add the marketplace and install the plugin from within Claude Code:
 ```
 /plugin marketplace add https://github.com/SkillStacks/skillstack-creator.git
 /plugin install skillstack-creator@skillstack-creator
-/reload-plugins
 ```
 
-Then navigate to your plugin source repo and run `/publish` to get started.
+Restart Claude Code, then navigate to your plugin source repo and run `/publish` to get started.
 
 ## Documentation
 
