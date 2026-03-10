@@ -19,7 +19,7 @@ Auto-warns on `git commit` if plugin source files changed without a version bump
 Add the marketplace and install the plugin from within Claude Code:
 
 ```
-/plugin marketplace add SkillStacks/skillstack-creator
+/plugin marketplace add https://github.com/SkillStacks/skillstack-creator.git
 /plugin install skillstack-creator@skillstack-creator
 /reload-plugins
 ```
