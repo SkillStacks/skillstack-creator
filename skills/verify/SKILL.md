@@ -95,6 +95,26 @@ If the storefront path exists locally:
 
 If `.skillstack-creator.json` doesn't exist or the storefront path is missing, skip this check silently.
 
+**Storefront repo field check:** Verify that the source `marketplace.json` has a top-level `storefront_repo` field. This is needed for the creator dashboard to show a storefront link.
+
+- If present: `Storefront repo: <org>/<name> (set)`
+- If missing but `.skillstack-creator.json` has `storefront_repo`:
+  ```
+  Storefront repo: NOT SET in marketplace.json
+    The dashboard won't show a storefront link.
+    Add "storefront_repo": "<org>/<name>" as a top-level field in marketplace.json and push.
+  ```
+
+**Storefront README check:** If the storefront path exists locally, check for a `README.md`.
+
+- If present: `Storefront README: present`
+- If missing:
+  ```
+  Storefront README: MISSING
+    Buyers who visit your storefront on GitHub won't see instructions.
+    Run /publish again to regenerate, or create one manually.
+  ```
+
 ### Step 4: Report status
 
 ```
@@ -124,6 +144,8 @@ another-plugin (theailaunchpad-another-plugin)
   Creator contact: NOT SET (recommended for paid plugins)
 
 Storefront: all 2 distributed plugins listed
+  Storefront repo: SkillStacks/theailaunchpad-skillstack-storefront (set)
+  Storefront README: present
 
 Overall: 2/3 plugins synced
 ```
