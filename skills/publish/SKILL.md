@@ -283,6 +283,18 @@ The `free_skills` array contains the exact skill directory names from `skills/`.
 
 This is shown to buyers when they encounter license configuration errors, so they can reach you directly. Can be an email or URL (e.g., Discord invite link).
 
+**For all plugins (free and paid), also add a top-level `storefront_repo` field** (outside the `plugins` array):
+```json
+{
+  "storefront_repo": "<org>/<storefront-name>",
+  "plugins": [ ... ]
+}
+```
+
+This field tells SkillStack where the buyer-facing storefront lives. It is synced to the database during webhook processing and displayed as a link in the creator dashboard.
+
+If `storefront_repo` is already set (from a prior publish), update it only if the storefront name changed.
+
 Preserve all existing fields, formatting, and order. The result should look like the creator's original entry plus the provider fields appended.
 
 **Backward compatibility:** Old format with `polar_org_id`/`polar_product_id` at the top level still works — the webhook handles both formats. Old `license_model` format is auto-normalized to `license_options` by the webhook.
@@ -360,12 +372,71 @@ Only include plugins the creator selected for SkillStack distribution in Step 2.
 - The package name uses the namespaced slug: `@skillstack/<org>-<plugin-name>`
 - Do NOT include `version`, `polar_*`, `license_model`, `author`, `category`, or `tags` in the storefront — those belong only in the source repo
 
+4b. Generate a buyer-facing `README.md` in the storefront root. This README helps buyers understand what the storefront offers and how to install plugins.
+
+**Template:**
+
+~~~markdown
+# <Storefront Display Name>
+
+<One-line description, e.g., "Claude Code plugins by <owner-name>.">
+
+## Available Plugins
+
+| Plugin | Description | License |
+|--------|-------------|---------|
+| <plugin-name> | <description> | <license-type> |
+
+## Quick Start
+
+### 1. Add this marketplace
+
+```
+/plugin marketplace add https://github.com/<org>/<storefront-name>
+```
+
+### 2. Install plugins
+
+```
+/install-plugin
+```
+
+This will guide you through installing any plugin from this marketplace, including setting up license activation for paid plugins.
+
+## How It Works
+
+This is a [SkillStack](https://skillstack.sh) storefront — a distribution channel for Claude Code plugins.
+
+- **Free plugins** install instantly with no setup
+- **Freemium plugins** include free skills you can try before purchasing
+- **Paid plugins** require a license key from the payment provider listed above
+
+## Support
+
+<If creator_contact is set: "For support, contact: <creator_contact>">
+<If creator_contact is NOT set: "For issues, open a ticket on this repo.">
+~~~
+
+**Rules for generating the README:**
+
+- **License column**: Use the actual license model from the source repo's marketplace.json:
+  - `free` (or no license fields) → "Free"
+  - `subscription` → "Subscription"
+  - `onetime` → "One-time purchase"
+  - `lifetime` → "Lifetime"
+  - Multi-license (`license_options`) → List all, e.g., "One-time / Lifetime"
+  - Freemium (has `free_skills`) → Append "(freemium — N free skills)" to the license type
+- **Do NOT include pricing amounts** unless the creator explicitly provides them — just show the license type
+- **Plugin list**: Only include plugins the creator selected for SkillStack distribution (same ones in the storefront marketplace.json), NOT the SkillStack buyer plugin itself
+- **creator_contact**: Pull from the source marketplace.json. If not set, default to "open a ticket on this repo"
+- **Keep it short**: Buyers want to install, not read an essay
+
 5. Write the file, commit, and push:
 ```bash
 cd <storefront-path>
 mkdir -p .claude-plugin
 # write marketplace.json
-git add .claude-plugin/marketplace.json
+git add .claude-plugin/marketplace.json README.md
 git commit -m "init: add SkillStack storefront"
 git push -u origin main
 ```
