@@ -355,7 +355,7 @@ gh repo create <org>/<storefront-name> --public --description "SkillStack plugin
       "source": {
         "source": "npm",
         "package": "@skillstack/<org>-<plugin-name>",
-        "registry": "https://skillstack-mcp.kennyliao22.workers.dev"
+        "registry": "https://mcp.skillstack.sh"
       }
     }
   ]
