@@ -6,8 +6,8 @@ Creator-facing Claude Code plugin for publishing and managing plugins on SkillSt
 
 | Skill | Purpose |
 |-------|---------|
-| `/publish` | Guided setup: connects existing plugins to SkillStack, configures pricing and payment provider, installs GitHub App, creates storefront repo, verifies registration. Run again to add more plugins or reconfigure licensing. Now collects optional `creator_contact` for buyer-facing error messages. |
-| `/verify` | Diagnostic: checks plugin registration, version sync, license config, free_skills, creator contact, and storefront sync against SkillStack, with troubleshooting guidance. |
+| `/publish` | Guided setup: connects existing plugins to SkillStack, configures pricing and payment provider, installs GitHub App, creates storefront repo with buyer-facing README, writes `storefront_repo` to marketplace.json for dashboard linking, verifies registration. Run again to add more plugins or reconfigure licensing. Collects optional `creator_contact` for buyer-facing error messages. |
+| `/verify` | Diagnostic: checks plugin registration, version sync, license config, free_skills, creator contact, storefront sync, `storefront_repo` field presence, and storefront README against SkillStack, with troubleshooting guidance. |
 | `/stats` | Analytics: view installs, activations, unique buyers, and free/paid split for your published plugins. Filterable by time period and plugin. |
 
 ## PostToolUse Hook
