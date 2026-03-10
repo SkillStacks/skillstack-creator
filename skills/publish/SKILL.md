@@ -37,6 +37,62 @@ If all plugins are already connected, ask the creator:
 
 If the creator chooses **Reconfigure licensing**, show the list of connected plugins and ask which one to update. Then proceed to Step 3 (pricing model) for that plugin, treating it as a new configuration. The updated fields will overwrite the previous values in marketplace.json when Step 5 runs.
 
+### Step 1b: Marketplace health check
+
+After reading the marketplace.json, scan for legacy or outdated patterns. If any are found, show a summary and offer to auto-fix them before proceeding.
+
+**Patterns to detect (source marketplace.json):**
+
+| Pattern | Issue | Fix |
+|---------|-------|-----|
+| `polar_org_id` / `polar_product_id` on a plugin entry | Legacy format from pre-v0.3.0 | Migrate to `"license_provider": "polar"` + `"license_config": { "org_id": "<value>", "product_id": "<value>" }` and remove old fields |
+| `license_model: "onetime_snapshot"` | Renamed in worker v0.2.0 | Change to `"onetime"` |
+| Plugin entry missing `version` field | Plugin will be invisible to buyers (404) | Warn creator — they MUST add a version |
+| Missing top-level `storefront_repo` | Dashboard won't show storefront link | Offer to add it (pull from `.skillstack-creator.json` if available) |
+| Missing `creator_contact` on paid plugins | Buyers can't reach creator for license issues | Recommend adding one (don't block) |
+| `license_model` AND `license_options` both present | Conflicting — worker ignores `license_model` when `license_options` exists | Remove `license_model`, keep `license_options` |
+
+**If issues are found, show:**
+
+```
+Marketplace health check
+========================
+
+Found [N] issue(s) in your marketplace.json:
+
+  1. LEGACY FORMAT: "<plugin-name>" uses old polar_org_id/polar_product_id fields
+     → Will migrate to license_provider + license_config
+
+  2. CRITICAL: "<plugin-name>" is missing a version field
+     → Buyers will get a 404. You must add a version (e.g., "1.0.0")
+
+  3. RECOMMENDED: "<plugin-name>" has no creator_contact
+     → Buyers who hit license errors won't know how to reach you
+
+Want me to auto-fix the issues I can? (I'll show you the changes before writing)
+```
+
+**If the creator confirms**, apply the fixes to the in-memory representation and carry them forward to Step 5 (where marketplace.json is written). Do NOT write the file yet — let the normal Step 5 flow handle writing with all changes batched together.
+
+**If no issues are found**, skip silently and proceed.
+
+**Storefront health check:** If `.skillstack-creator.json` exists and points to a local storefront, also check the storefront's `marketplace.json`:
+
+| Pattern | Issue | Fix |
+|---------|-------|-----|
+| Contains a `skillstack` plugin entry with GitHub source | Redundant — buyers now install SkillStack as a standalone marketplace | Offer to remove it |
+| Plugin `source` missing `"source": "npm"` nested format | Old flat source format | Migrate to `{ "source": "npm", "package": "@skillstack/<slug>" }` |
+
+If the storefront has a redundant SkillStack buyer plugin entry:
+
+```
+  4. OUTDATED: Your storefront includes the SkillStack buyer plugin
+     → Buyers now install SkillStack separately. This entry is redundant.
+     → Will remove it from the storefront
+```
+
+If storefront fixes are needed, apply them in Step 7 (when the storefront is updated/created).
+
 ### Step 2: Select plugins to distribute
 
 Ask the creator: **Which plugins do you want to distribute on SkillStack?**
@@ -297,7 +353,7 @@ If `storefront_repo` is already set (from a prior publish), update it only if th
 
 Preserve all existing fields, formatting, and order. The result should look like the creator's original entry plus the provider fields appended.
 
-**Backward compatibility:** Old format with `polar_org_id`/`polar_product_id` at the top level still works — the webhook handles both formats. Old `license_model` format is auto-normalized to `license_options` by the webhook.
+**Backward compatibility:** Old format with `polar_org_id`/`polar_product_id` at the top level still works — the webhook handles both formats. However, Step 1b should have already migrated these to the current format. Old `license_model` format is auto-normalized to `license_options` by the webhook.
 
 ### Step 6: Install GitHub App
 
@@ -345,11 +401,6 @@ gh repo create <org>/<storefront-name> --public --description "SkillStack plugin
   },
   "plugins": [
     {
-      "name": "skillstack",
-      "description": "Install, update, and manage paid Claude Code plugins via SkillStack.",
-      "source": { "source": "url", "url": "https://github.com/SkillStacks/skillstack.git" }
-    },
-    {
       "name": "<plugin-name>",
       "description": "<description>",
       "source": {
@@ -362,7 +413,7 @@ gh repo create <org>/<storefront-name> --public --description "SkillStack plugin
 }
 ```
 
-**IMPORTANT:** The SkillStack plugin entry (GitHub source) MUST always be included as the first plugin. This enables buyers to install the SkillStack plugin for free (from GitHub) before setting up npm auth for paid plugins.
+**NOTE:** Do NOT include the SkillStack buyer plugin in the storefront. Buyers install SkillStack once as a standalone marketplace (`/plugin marketplace add https://github.com/SkillStacks/skillstack.git`) before adding any creator storefronts. The storefront should only contain the creator's own plugins.
 
 Only include plugins the creator selected for SkillStack distribution in Step 2.
 
@@ -389,19 +440,31 @@ Only include plugins the creator selected for SkillStack distribution in Step 2.
 
 ## Quick Start
 
-### 1. Add this marketplace
+### 1. Install SkillStack (one-time)
+
+If you haven't already, install the SkillStack plugin first:
+
+```
+/plugin marketplace add https://github.com/SkillStacks/skillstack.git
+/plugin install skillstack@skillstack-marketplace
+```
+
+Then restart Claude Code.
+
+### 2. Add this marketplace
 
 ```
 /plugin marketplace add https://github.com/<org>/<storefront-name>
 ```
 
-### 2. Install plugins
+### 3. Activate and install
 
 ```
+/activate-license
 /install-plugin
 ```
 
-This will guide you through installing any plugin from this marketplace, including setting up license activation for paid plugins.
+This will guide you through license activation and plugin installation.
 
 ## How It Works
 

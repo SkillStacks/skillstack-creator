@@ -79,7 +79,8 @@ If the storefront path exists locally:
 
 1. Read the storefront's `.claude-plugin/marketplace.json`
 2. For each plugin distributed on SkillStack, check if it has a corresponding entry in the storefront
-3. Report the results:
+3. Check for redundant SkillStack buyer plugin entry (see below)
+4. Report the results:
 
 **All plugins in storefront:**
 ```
@@ -92,6 +93,19 @@ If the storefront path exists locally:
     These plugins are registered in SkillStack but buyers can't discover them.
     Add npm pointer entries to your storefront's marketplace.json and push.
 ```
+
+**Redundant SkillStack buyer plugin:**
+
+If the storefront contains a plugin entry named `skillstack` with a GitHub source (e.g., `"url": "https://github.com/SkillStacks/skillstack.git"`), flag it:
+
+```
+  Storefront: OUTDATED — contains SkillStack buyer plugin entry
+    Buyers now install SkillStack as a standalone marketplace before adding storefronts.
+    This entry is redundant and should be removed.
+    Want me to remove it?
+```
+
+If the creator says yes, remove the entry from the storefront's marketplace.json, commit, and push.
 
 If `.skillstack-creator.json` doesn't exist or the storefront path is missing, skip this check silently.
 
@@ -114,6 +128,44 @@ If `.skillstack-creator.json` doesn't exist or the storefront path is missing, s
     Buyers who visit your storefront on GitHub won't see instructions.
     Run /publish again to regenerate, or create one manually.
   ```
+
+### Step 3e: Format health check
+
+Scan the source `marketplace.json` for legacy or outdated patterns that still work (due to worker backward compatibility) but should be migrated to the current format.
+
+**Patterns to detect:**
+
+| Pattern | Severity | Message |
+|---------|----------|---------|
+| `polar_org_id` / `polar_product_id` on a plugin | LEGACY | "Uses old Polar field format. Migrate to `license_provider` + `license_config`." |
+| `license_model: "onetime_snapshot"` | LEGACY | "Old license model name. Should be `onetime`." |
+| Plugin missing `version` | CRITICAL | "Plugin is invisible to buyers (404). Add a `version` field." |
+| Missing top-level `storefront_repo` | RECOMMENDED | "Dashboard won't show storefront link. Add `storefront_repo`." |
+| Missing `creator_contact` on paid plugins | RECOMMENDED | "Buyers who hit license errors won't know how to reach you." |
+| Both `license_model` AND `license_options` present | LEGACY | "Conflicting fields. Worker ignores `license_model` when `license_options` exists. Remove `license_model`." |
+
+**Report format:**
+
+If issues found:
+```
+Format Health
+=============
+
+  1. LEGACY: "<plugin-name>" uses polar_org_id/polar_product_id (old format)
+     → Migrate to license_provider + license_config
+
+  2. CRITICAL: "<plugin-name>" missing version field
+     → Buyers will get 404. Add a version.
+
+  [N] issue(s) found. Run /publish to auto-fix.
+```
+
+If no issues:
+```
+Format Health: all fields use current format
+```
+
+Offer to auto-fix legacy issues if the creator wants. For CRITICAL issues (missing version), the creator must fix manually since only they know the correct version number.
 
 ### Step 4: Report status
 
