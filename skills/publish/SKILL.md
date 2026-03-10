@@ -442,31 +442,20 @@ Only include plugins the creator selected for SkillStack distribution in Step 2.
 
 ### 1. Install SkillStack (one-time)
 
-If you haven't already, install the SkillStack plugin first:
-
 ```
 /plugin marketplace add https://github.com/SkillStacks/skillstack.git
 /plugin install skillstack@skillstack-marketplace
 ```
 
-Select "Install for you (user scope)" when prompted. Then restart Claude Code.
+Select "Install for you (user scope)" when prompted. Restart Claude Code.
 
-### 2. Activate your license (one-time)
+### 2. Activate and install
 
 ```
 /activate-license
 ```
 
-For paid plugins, paste your license key when prompted. SkillStack auto-detects which plugin it belongs to.
-
-### 3. Add this marketplace and install
-
-```
-/plugin marketplace add https://github.com/<org>/<storefront-name>.git
-/plugin install <plugin-name>@<storefront-name>
-```
-
-Select "Install for you (user scope)" when prompted. Then restart Claude Code.
+Paste your license key when prompted. Claude will guide you through adding the storefront and installing the plugin. Restart Claude Code when done.
 
 ## How It Works
 
