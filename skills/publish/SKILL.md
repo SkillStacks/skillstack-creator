@@ -457,13 +457,13 @@ Select "Install for you (user scope)" when prompted. Then restart Claude Code.
 /activate-license
 ```
 
-For paid plugins, paste your license key when prompted.
+For paid plugins, paste your license key when prompted. SkillStack auto-detects which plugin it belongs to.
 
 ### 3. Add this marketplace and install
 
 ```
-/plugin marketplace add https://github.com/<org>/<storefront-name>
-/install-plugin
+/plugin marketplace add https://github.com/<org>/<storefront-name>.git
+/plugin install <plugin-name>@<storefront-name>
 ```
 
 Select "Install for you (user scope)" when prompted. Then restart Claude Code.
@@ -559,7 +559,7 @@ Source repo: <source-repo-url>
 Storefront: <storefront-repo-url>
 
 Buyers can add your marketplace with:
-  /plugin marketplace add https://github.com/<org>/<storefront-name>
+  /plugin marketplace add https://github.com/<org>/<storefront-name>.git
 
 How it works from here:
 - Just develop normally — commit and push as usual
