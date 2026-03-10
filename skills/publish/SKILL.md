@@ -449,22 +449,24 @@ If you haven't already, install the SkillStack plugin first:
 /plugin install skillstack@skillstack-marketplace
 ```
 
-Then restart Claude Code.
+Select "Install for you (user scope)" when prompted. Then restart Claude Code.
 
-### 2. Add this marketplace
-
-```
-/plugin marketplace add https://github.com/<org>/<storefront-name>
-```
-
-### 3. Activate and install
+### 2. Activate your license (one-time)
 
 ```
 /activate-license
+```
+
+For paid plugins, paste your license key when prompted.
+
+### 3. Add this marketplace and install
+
+```
+/plugin marketplace add https://github.com/<org>/<storefront-name>
 /install-plugin
 ```
 
-This will guide you through license activation and plugin installation.
+Select "Install for you (user scope)" when prompted. Then restart Claude Code.
 
 ## How It Works
 
