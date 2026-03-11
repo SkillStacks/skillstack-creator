@@ -17,11 +17,10 @@ if [ ! -f "$MARKETPLACE" ]; then
   exit 0
 fi
 
-# Check if any plugin has SkillStack distribution (polar_org_id or .skillstack-creator.json)
+# Check if this repo has SkillStack distribution config
+SKILLSTACK_CONFIG=".claude-plugin/skillstack.json"
 HAS_SKILLSTACK=false
-if [ -f ".skillstack-creator.json" ]; then
-  HAS_SKILLSTACK=true
-elif jq -e '.plugins[]? | select(.license_provider != null or .polar_org_id != null)' "$MARKETPLACE" > /dev/null 2>&1; then
+if [ -f "$SKILLSTACK_CONFIG" ]; then
   HAS_SKILLSTACK=true
 fi
 
@@ -32,7 +31,7 @@ fi
 # For git push: just a friendly reminder
 if echo "$COMMAND" | grep -q 'git push'; then
   cat <<'EOF'
-{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"[SkillStack] Push detected. The SkillStack webhook will automatically sync any version changes. If the version in marketplace.json was bumped, buyers will get the new version shortly."}}
+{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"[SkillStack] Push detected. The SkillStack webhook will automatically sync any changes to marketplace.json or skillstack.json. If the version was bumped, buyers will get the new version shortly."}}
 EOF
   exit 0
 fi
