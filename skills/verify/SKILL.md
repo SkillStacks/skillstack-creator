@@ -86,10 +86,10 @@ If the source skillstack.json has a `free_skills` field for any plugin:
 
 ### Step 3c: Verify storefront
 
-Derive the GitHub org from `git remote get-url origin`. Fetch the buyer-facing storefront:
+Derive the GitHub org from `git remote get-url origin` and the marketplace slug from the `name` field in `marketplace.json` (slugified, e.g. "The AI Launchpad" becomes "the-ai-launchpad"; defaults to `<github_org>-plugins` if no name). Fetch the buyer-facing storefront:
 
 ```bash
-curl -s https://store.skillstack.sh/s/<github_org>/marketplace.json
+curl -s https://store.skillstack.sh/s/<github_org>/<marketplace-slug>/marketplace.json
 ```
 
 Check:
@@ -100,13 +100,13 @@ Check:
 
 **If storefront is valid:**
 ```
-  Storefront: https://store.skillstack.sh/s/<github_org>/marketplace.json
+  Storefront: https://store.skillstack.sh/s/<github_org>/<marketplace-slug>/marketplace.json
     All [N] distributed plugins listed with correct versions
 ```
 
 **If storefront returns 404:**
 ```
-  Storefront: NOT FOUND at store.skillstack.sh/s/<github_org>/marketplace.json
+  Storefront: NOT FOUND at store.skillstack.sh/s/<github_org>/<marketplace-slug>/marketplace.json
     Plugins may not be registered yet. Push a change to trigger the webhook.
 ```
 
@@ -178,7 +178,7 @@ another-plugin (theailaunchpad-another-plugin)
   Free tier: not configured (pure paid)
   Creator contact: NOT SET (recommended for paid plugins)
 
-Storefront: https://store.skillstack.sh/s/theailaunchpad/marketplace.json
+Storefront: https://store.skillstack.sh/s/theailaunchpad/the-ai-launchpad/marketplace.json
   All 2 distributed plugins listed with correct versions
 
 Overall: 2/3 plugins synced

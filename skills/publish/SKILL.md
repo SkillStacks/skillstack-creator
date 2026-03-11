@@ -225,10 +225,10 @@ Write SkillStack distribution config to `.claude-plugin/skillstack.json`. **Do N
 
 If `.claude-plugin/skillstack.json` already exists, merge the new plugin config into the existing `plugins` object. Always preserve any existing `storefront` field at the top level.
 
-**Storefront URL:** Derive the GitHub org/user from `git remote get-url origin` and include a top-level `storefront` field so the creator always has their storefront URL saved in their repo:
+**Storefront URL:** Derive the GitHub org/user from `git remote get-url origin` and the marketplace slug from the `name` field in `marketplace.json` (slugified, e.g. "The AI Launchpad" becomes "the-ai-launchpad"; defaults to `<github_org>-plugins` if no name). Include a top-level `storefront` field so the creator always has their storefront URL saved in their repo:
 
 ```
-"storefront": "https://store.skillstack.sh/s/<github_org>/marketplace.json"
+"storefront": "https://store.skillstack.sh/s/<github_org>/<marketplace-slug>/marketplace.json"
 ```
 
 **For free plugins:** No skillstack.json entry needed. The existing marketplace.json entry works as-is.
@@ -236,7 +236,7 @@ If `.claude-plugin/skillstack.json` already exists, merge the new plugin config 
 **For paid plugins with a single license type, add to skillstack.json:**
 ```json
 {
-  "storefront": "https://store.skillstack.sh/s/<github_org>/marketplace.json",
+  "storefront": "https://store.skillstack.sh/s/<github_org>/<marketplace-slug>/marketplace.json",
   "plugins": {
     "my-plugin": {
       "license_provider": "<polar|lemonsqueezy>",
@@ -358,10 +358,10 @@ Display the storefront URL, then explain what needs to happen next in plain lang
 
 > "Once your plugin is registered, buyers will find it at your auto-generated storefront:
 >
-> `https://store.skillstack.sh/s/<github_org>/marketplace.json`
+> `https://store.skillstack.sh/s/<github_org>/<marketplace-slug>/marketplace.json`
 >
 > Buyers add it with:
-> `/plugin marketplace add https://store.skillstack.sh/s/<github_org>/marketplace.json`
+> `/plugin marketplace add https://store.skillstack.sh/s/<github_org>/<marketplace-slug>/marketplace.json`
 >
 > **To register your plugin**, we need to push the `skillstack.json` config we just created to your private repo. When GitHub receives that push, it notifies SkillStack, which reads your config and starts distributing your plugin. This is also how future updates work — every time you bump the version and push, SkillStack automatically picks it up and delivers the update to your buyers (with license enforcement if applicable).
 >
@@ -419,10 +419,10 @@ Distributed plugins:
   - <plugin-name> → <org>-<plugin-name> (v<version>, <free|subscription|onetime|lifetime|multi-license: onetime+lifetime>[, N free / M total skills])
 
 Source repo: <source-repo-url>
-Storefront: https://store.skillstack.sh/s/<org>/marketplace.json
+Storefront: https://store.skillstack.sh/s/<org>/<marketplace-slug>/marketplace.json
 
 Buyers can add your marketplace with:
-  /plugin marketplace add https://store.skillstack.sh/s/<org>/marketplace.json
+  /plugin marketplace add https://store.skillstack.sh/s/<org>/<marketplace-slug>/marketplace.json
 
 Your storefront URL is also saved in your skillstack.json so you can always find it there.
 
