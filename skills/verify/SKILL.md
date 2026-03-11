@@ -9,14 +9,15 @@ Quick diagnostic to check if plugins are registered and synced on SkillStack.
 
 ### Step 1: Read expected state
 
-Read `.claude-plugin/marketplace.json` from the current repo. Build a list of expected plugins with their names, versions, license models, and license options.
+Read `.claude-plugin/marketplace.json` from the current repo. Build a list of expected plugins with their names and versions.
 
-For each plugin, note:
+Read `.claude-plugin/skillstack.json` from the current repo for SkillStack distribution config. For each plugin listed in skillstack.json's `plugins` object, note:
 - `license_model` (if present) — single license type
 - `license_options` (if present) — multi-license config with per-type identifiers
 - `free_skills` (if present) — freemium skill list
+- `creator_contact` (if present) — support contact for buyers
 
-If the file doesn't exist, tell the creator to run the **publish** skill first.
+If marketplace.json doesn't exist, tell the creator they need a plugin set up first. If skillstack.json doesn't exist, tell the creator to run the **publish** skill first to connect their plugins to SkillStack.
 
 ### Step 2: Query SkillStack
 
@@ -24,7 +25,7 @@ Call the `skillstack_list` MCP tool to get all registered plugins.
 
 ### Step 3: Compare and report
 
-For each plugin in the source manifest, check against the `skillstack_list` results:
+For each plugin in marketplace.json, check against the `skillstack_list` results:
 
 | Check | Pass | Fail |
 |-------|------|------|
@@ -34,19 +35,19 @@ For each plugin in the source manifest, check against the `skillstack_list` resu
 | License model correct? | Models match | Mismatch |
 | License options synced? | Options match (keys and identifiers) | Missing or mismatched |
 
-**License options check:** If the source has `license_options`, compare against the `license_options` returned by `skillstack_list`:
+**License options check:** If skillstack.json has `license_options` for a plugin, compare against the `license_options` returned by `skillstack_list`:
 - Check that the same license type keys exist (e.g., `onetime`, `lifetime`)
 - Note: the worker auto-normalizes old `license_model` into `license_options` — a plugin with `"license_model": "subscription"` will show as `"license_options": { "subscription": {} }` in SkillStack. This is expected and counts as a match.
-- If the source has `license_options` but SkillStack shows `null`, the webhook likely didn't sync — suggest re-pushing.
+- If skillstack.json has `license_options` but SkillStack shows `null`, the webhook likely didn't sync — suggest re-pushing.
 
-**Creator contact check:** For each plugin, check if `creator_contact` is set in the source `marketplace.json`:
+**Creator contact check:** For each plugin, check if `creator_contact` is set in the source `skillstack.json`:
 
 - If set: Verify it appears in the `skillstack_list` response for that plugin. Report: `Creator contact: <value> (synced)`
 - If not set: Report a warning:
   ```
   Creator contact: NOT SET
     Buyers who hit license errors won't know how to reach you.
-    Add "creator_contact": "your-email@example.com" to your plugin entry in marketplace.json.
+    Add "creator_contact": "your-email@example.com" to your plugin entry in skillstack.json.
   ```
   This is a warning, not an error — the plugin works without it.
 
@@ -63,7 +64,7 @@ For each plugin in the source manifest, check against the `skillstack_list` resu
 
 ### Step 3b: Validate free_skills
 
-If the source marketplace.json has a `free_skills` field for any plugin:
+If the source skillstack.json has a `free_skills` field for any plugin:
 
 1. Read the plugin's `skills/` directory to get actual skill directory names
 2. Compare each entry in `free_skills` against actual directories
@@ -94,7 +95,7 @@ curl -s https://store.skillstack.sh/s/<github_org>/marketplace.json
 Check:
 1. Response is 200 (not 404)
 2. All distributed plugins appear in the `plugins` array
-3. Versions match what's in the source marketplace.json
+3. Versions match what's in marketplace.json
 4. Registry is `https://mcp.skillstack.sh`
 
 **If storefront is valid:**
@@ -117,42 +118,37 @@ Check:
     Push a commit to re-trigger the webhook sync.
 ```
 
-### Step 3e: Format health check
+### Step 3e: Stale field check
 
-Scan the source `marketplace.json` for legacy or outdated patterns that still work (due to worker backward compatibility) but should be migrated to the current format.
+Scan `marketplace.json` for SkillStack-specific fields that now belong in `skillstack.json`. These are leftovers from a prior publish before the sidecar file split.
 
-**Patterns to detect:**
+**Fields to detect on plugin entries:** `license_provider`, `license_config`, `license_model`, `license_options`, `free_skills`, `creator_contact`, `polar_org_id`, `polar_product_id`.
 
-| Pattern | Severity | Message |
-|---------|----------|---------|
-| `polar_org_id` / `polar_product_id` on a plugin | LEGACY | "Uses old Polar field format. Migrate to `license_provider` + `license_config`." |
-| `license_model: "onetime_snapshot"` | LEGACY | "Old license model name. Should be `onetime`." |
-| Plugin missing `version` | CRITICAL | "Plugin is invisible to buyers (404). Add a `version` field." |
-| Missing `creator_contact` on paid plugins | RECOMMENDED | "Buyers who hit license errors won't know how to reach you." |
-| Both `license_model` AND `license_options` present | LEGACY | "Conflicting fields. Worker ignores `license_model` when `license_options` exists. Remove `license_model`." |
+**Fields to detect at top level:** `storefront_repo`.
 
-**Report format:**
-
-If issues found:
+**If stale fields found:**
 ```
-Format Health
-=============
+Cleanup needed
+==============
 
-  1. LEGACY: "<plugin-name>" uses polar_org_id/polar_product_id (old format)
-     → Migrate to license_provider + license_config
+  marketplace.json still has SkillStack fields that belong in skillstack.json:
+    - "my-plugin": license_provider, license_config, license_model
+    - storefront_repo (top level)
 
-  2. CRITICAL: "<plugin-name>" missing version field
-     → Buyers will get 404. Add a version.
-
-  [N] issue(s) found. Run /publish to auto-fix.
+  Run /publish to migrate them automatically.
 ```
 
-If no issues:
+**If no stale fields:** Report cleanly:
 ```
-Format Health: all fields use current format
+Field separation: marketplace.json is clean (no SkillStack fields)
 ```
 
-Offer to auto-fix legacy issues if the creator wants. For CRITICAL issues (missing version), the creator must fix manually since only they know the correct version number.
+Also check for these issues that still apply regardless of field location:
+
+| Check | Severity | Message |
+|-------|----------|---------|
+| Plugin missing `version` in marketplace.json | CRITICAL | "Plugin is invisible to buyers (404). Add a `version` field." |
+| Missing `creator_contact` on paid plugins in skillstack.json | RECOMMENDED | "Buyers who hit license errors won't know how to reach you." |
 
 ### Step 4: Report status
 
@@ -162,11 +158,11 @@ Plugin Status
 
 my-plugin (theailaunchpad-my-plugin)
   Registration: OK
-  Version: 1.2.3 (synced)
-  License: subscription (correct)
-  License options: { subscription: {} } (synced)
-  Free tier: 3 skills (write-note, hook, title) — all valid
-  Creator contact: support@example.com (synced)
+  Version: 1.2.3 (synced)                              ← from marketplace.json
+  License: subscription (correct)                       ← from skillstack.json
+  License options: { subscription: {} } (synced)        ← from skillstack.json
+  Free tier: 3 skills (write-note, hook, title) — all valid  ← from skillstack.json
+  Creator contact: support@example.com (synced)         ← from skillstack.json
 
 multi-license-plugin (theailaunchpad-multi-license-plugin)
   Registration: OK
@@ -195,18 +191,18 @@ If any plugins have issues, provide specific guidance:
 **Not registered:**
 - "Check that the SkillStack GitHub App is installed on this repo: https://github.com/apps/skillstack-distribution"
 - "Try pushing a commit to trigger the webhook"
-- "Verify marketplace.json has a `version` field — without it, the plugin won't register"
+- "Verify marketplace.json has a `version` field and skillstack.json has the plugin's licensing config — both are needed for registration"
 
 **Version mismatch (source ahead):**
 - "The source repo has a newer version than SkillStack. This usually means the webhook didn't fire."
 - "Try: `git commit --allow-empty -m 'trigger webhook' && git push`"
 
 **License model mismatch:**
-- "The license model in SkillStack doesn't match your marketplace.json."
+- "The license model in SkillStack doesn't match your skillstack.json."
 - "Push a commit to re-trigger the webhook sync."
 
 **License options mismatch:**
-- "The license options in SkillStack don't match your marketplace.json."
+- "The license options in SkillStack don't match your skillstack.json."
 - "Check that `license_options` keys are valid: `subscription`, `onetime`, or `lifetime`."
 - "Push a commit to re-trigger the webhook sync."
 

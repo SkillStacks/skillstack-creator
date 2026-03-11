@@ -5,20 +5,20 @@ description: Use when a creator wants to publish their Claude Code plugin on Ski
 
 ## Publish Plugin on SkillStack
 
-Publishes an existing Claude Code plugin to SkillStack for distribution. The creator already has a working plugin in a private GitHub repo with a `.claude-plugin/marketplace.json` — this skill connects it to SkillStack so buyers can install it. Run again to add more plugins.
+Publishes an existing Claude Code plugin to SkillStack for distribution. The creator already has a working plugin in a private GitHub repo with a `.claude-plugin/marketplace.json` — this skill writes SkillStack distribution config to a separate `.claude-plugin/skillstack.json` sidecar file so buyers can install it. Run again to add more plugins.
 
 **Prerequisites:**
 - Creator has a private GitHub repo with `.claude-plugin/marketplace.json` and plugins defined
 - Plugins have `name`, `source`, `description`, and `version` fields
 
-### Step 1: Read existing marketplace
+### Step 1: Read existing state
 
 Read `.claude-plugin/marketplace.json` from the current repo.
 
 If it doesn't exist, stop and tell the creator:
 > "This repo doesn't have a `.claude-plugin/marketplace.json`. SkillStack distributes existing Claude Code plugins — you need a plugin marketplace set up first. See the Claude Code docs on creating plugins."
 
-Also check if any plugins already have SkillStack fields (`license_provider`, `license_config`, etc.) in the marketplace.json (indicates a prior publish). If so, show which plugins are already connected to SkillStack and which are not:
+Also read `.claude-plugin/skillstack.json` (if it exists) for existing SkillStack config. Check if any plugins from marketplace.json already have entries in skillstack.json's `plugins` object (indicates a prior publish). If so, show which plugins are already connected to SkillStack and which are not:
 
 ```
 Plugins in this repo:
@@ -35,45 +35,7 @@ If all plugins are already connected, ask the creator:
 > 2. **Run /verify** — check that everything is synced correctly
 > 3. **Nothing** — everything looks good
 
-If the creator chooses **Reconfigure licensing**, show the list of connected plugins and ask which one to update. Then proceed to Step 3 (pricing model) for that plugin, treating it as a new configuration. The updated fields will overwrite the previous values in marketplace.json when Step 5 runs.
-
-### Step 1b: Marketplace health check
-
-After reading the marketplace.json, scan for legacy or outdated patterns. If any are found, show a summary and offer to auto-fix them before proceeding.
-
-**Patterns to detect (source marketplace.json):**
-
-| Pattern | Issue | Fix |
-|---------|-------|-----|
-| `polar_org_id` / `polar_product_id` on a plugin entry | Legacy format from pre-v0.3.0 | Migrate to `"license_provider": "polar"` + `"license_config": { "org_id": "<value>", "product_id": "<value>" }` and remove old fields |
-| `license_model: "onetime_snapshot"` | Renamed in worker v0.2.0 | Change to `"onetime"` |
-| Plugin entry missing `version` field | Plugin will be invisible to buyers (404) | Warn creator — they MUST add a version |
-| Missing `creator_contact` on paid plugins | Buyers can't reach creator for license issues | Recommend adding one (don't block) |
-| `license_model` AND `license_options` both present | Conflicting — worker ignores `license_model` when `license_options` exists | Remove `license_model`, keep `license_options` |
-
-**If issues are found, show:**
-
-```
-Marketplace health check
-========================
-
-Found [N] issue(s) in your marketplace.json:
-
-  1. LEGACY FORMAT: "<plugin-name>" uses old polar_org_id/polar_product_id fields
-     → Will migrate to license_provider + license_config
-
-  2. CRITICAL: "<plugin-name>" is missing a version field
-     → Buyers will get a 404. You must add a version (e.g., "1.0.0")
-
-  3. RECOMMENDED: "<plugin-name>" has no creator_contact
-     → Buyers who hit license errors won't know how to reach you
-
-Want me to auto-fix the issues I can? (I'll show you the changes before writing)
-```
-
-**If the creator confirms**, apply the fixes to the in-memory representation and carry them forward to Step 5 (where marketplace.json is written). Do NOT write the file yet — let the normal Step 5 flow handle writing with all changes batched together.
-
-**If no issues are found**, skip silently and proceed.
+If the creator chooses **Reconfigure licensing**, show the list of connected plugins and ask which one to update. Then proceed to Step 3 (pricing model) for that plugin, treating it as a new configuration. The updated fields will overwrite the previous values in skillstack.json when Step 5 runs.
 
 ### Step 2: Select plugins to distribute
 
@@ -144,7 +106,7 @@ Validate it is UUID format (8-4-4-4-12 hex pattern). If not, ask the creator to 
 3. **Confirm License Key benefit exists.** Ask the creator:
    > "Does this product have a **License Key** benefit configured? SkillStack uses license keys for access control. You can check at polar.sh → Products → your product → Benefits."
 
-Store for marketplace.json: `license_provider: "polar"`, `license_config: { "org_id": "<uuid>", "product_id": "<uuid>" }`, and `license_model: "<type>"`.
+Store for skillstack.json: `license_provider: "polar"`, `license_config: { "org_id": "<uuid>", "product_id": "<uuid>" }`, and `license_model: "<type>"`.
 
 **For multi-license, ask for each selected license type:**
 
@@ -165,7 +127,7 @@ Store for marketplace.json: `license_provider: "polar"`, `license_config: { "org
 
    Validate each is UUID format.
 
-Store for marketplace.json: `license_provider: "polar"`, `license_config: { "org_id": "<uuid>" }`, and `license_options` (see Step 5).
+Store for skillstack.json: `license_provider: "polar"`, `license_config: { "org_id": "<uuid>" }`, and `license_options` (see Step 5).
 
 #### Lemon Squeezy path
 
@@ -183,7 +145,7 @@ Store for marketplace.json: `license_provider: "polar"`, `license_config: { "org
    > Go to **app.lemonsqueezy.com → Products → click the product**. The Product ID is in the URL.
    > This is optional but recommended for cross-product verification.
 
-Store for marketplace.json: `license_provider: "lemonsqueezy"`, `license_config: { "store_id": "<id>" }` (add `"product_id": "<id>"` if provided), and `license_model: "<type>"`.
+Store for skillstack.json: `license_provider: "lemonsqueezy"`, `license_config: { "store_id": "<id>" }` (add `"product_id": "<id>"` if provided), and `license_model: "<type>"`.
 
 **For multi-license, ask for each selected license type:**
 
@@ -200,7 +162,7 @@ Store for marketplace.json: `license_provider: "lemonsqueezy"`, `license_config:
    Enter the Product ID for lifetime: > 67890
    ```
 
-Store for marketplace.json: `license_provider: "lemonsqueezy"`, `license_config: { "store_id": "<id>" }`, and `license_options` (see Step 5).
+Store for skillstack.json: `license_provider: "lemonsqueezy"`, `license_config: { "store_id": "<id>" }`, and `license_options` (see Step 5).
 
 ### Step 4b: Configure free tier (optional)
 
@@ -249,21 +211,27 @@ Ask the creator:
 
 - If **yes**: Store the value for Step 5. Validate it looks like an email (contains `@`) or a URL (starts with `http`).
 - If **no**: Skip. Buyers will be directed to the GitHub repo for issues.
-- If **already set** (check existing marketplace.json for `creator_contact`): Show current value and ask if they want to update it.
+- If **already set** (check existing skillstack.json for `creator_contact`): Show current value and ask if they want to update it.
 
-### Step 5: Update source marketplace.json
+### Step 5: Write skillstack.json
 
-Add SkillStack-specific fields to the selected plugins in the existing `.claude-plugin/marketplace.json`. **Do NOT modify any existing fields** — only add new ones (or replace previously-set SkillStack fields when reconfiguring).
+Write SkillStack distribution config to `.claude-plugin/skillstack.json`. **Do NOT add licensing fields to marketplace.json** — marketplace.json is for Claude Code plugin metadata only; skillstack.json is for SkillStack distribution config.
 
-**For free plugins:** No changes needed. The existing entry works as-is.
+If `.claude-plugin/skillstack.json` already exists, merge the new plugin config into the existing `plugins` object.
 
-**For paid plugins with a single license type, add these fields to the plugin entry:**
+**For free plugins:** No skillstack.json entry needed. The existing marketplace.json entry works as-is.
+
+**For paid plugins with a single license type, add to skillstack.json:**
 ```json
 {
-  "license_provider": "<polar|lemonsqueezy>",
-  "license_config": { "org_id": "...", "product_id": "..." },
-  "license_model": "<subscription|onetime|lifetime>",
-  "creator_contact": "<email-or-url>"
+  "plugins": {
+    "my-plugin": {
+      "license_provider": "<polar|lemonsqueezy>",
+      "license_config": { "org_id": "...", "product_id": "..." },
+      "license_model": "<subscription|onetime|lifetime>",
+      "creator_contact": "<email-or-url>"
+    }
+  }
 }
 ```
 
@@ -276,11 +244,15 @@ The `license_config` keys depend on the provider:
 Polar example (onetime + lifetime):
 ```json
 {
-  "license_provider": "polar",
-  "license_config": { "org_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" },
-  "license_options": {
-    "onetime": { "benefit_id": "ben_aaaa-..." },
-    "lifetime": { "benefit_id": "ben_bbbb-..." }
+  "plugins": {
+    "my-plugin": {
+      "license_provider": "polar",
+      "license_config": { "org_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" },
+      "license_options": {
+        "onetime": { "benefit_id": "ben_aaaa-..." },
+        "lifetime": { "benefit_id": "ben_bbbb-..." }
+      }
+    }
   }
 }
 ```
@@ -288,11 +260,15 @@ Polar example (onetime + lifetime):
 Lemon Squeezy example (onetime + lifetime):
 ```json
 {
-  "license_provider": "lemonsqueezy",
-  "license_config": { "store_id": "306756" },
-  "license_options": {
-    "onetime": { "product_id": "12345" },
-    "lifetime": { "product_id": "67890" }
+  "plugins": {
+    "my-plugin": {
+      "license_provider": "lemonsqueezy",
+      "license_config": { "store_id": "306756" },
+      "license_options": {
+        "onetime": { "product_id": "12345" },
+        "lifetime": { "product_id": "67890" }
+      }
+    }
   }
 }
 ```
@@ -303,7 +279,7 @@ Lemon Squeezy example (onetime + lifetime):
 - Do NOT include `license_model` when using `license_options` — the worker auto-derives it (highest tier wins: lifetime > subscription > onetime)
 - Single-license plugins can use either `license_model` or `license_options` with one entry — both work
 
-**For freemium plugins (paid with a free tier), also add:**
+**For freemium plugins (paid with a free tier), also add to the plugin entry:**
 ```json
 {
   "free_skills": ["write-note", "hook", "title"]
@@ -312,7 +288,7 @@ Lemon Squeezy example (onetime + lifetime):
 
 The `free_skills` array contains the exact skill directory names from `skills/`. SkillStack validates these against actual directories during webhook sync — typos are silently dropped, but the `/verify` skill will flag them.
 
-**For all paid plugins, optionally add:**
+**For all paid plugins, optionally add to the plugin entry:**
 ```json
 {
   "creator_contact": "support@example.com"
@@ -321,9 +297,22 @@ The `free_skills` array contains the exact skill directory names from `skills/`.
 
 This is shown to buyers when they encounter license configuration errors, so they can reach you directly. Can be an email or URL (e.g., Discord invite link).
 
-Preserve all existing fields, formatting, and order. The result should look like the creator's original entry plus the provider fields appended.
+### Step 5b: Clean up stale fields from marketplace.json
 
-**Backward compatibility:** Old format with `polar_org_id`/`polar_product_id` at the top level still works — the webhook handles both formats. However, Step 1b should have already migrated these to the current format. Old `license_model` format is auto-normalized to `license_options` by the webhook.
+If marketplace.json still has SkillStack-specific fields from a prior publish, strip them out (one-time cleanup). **Do NOT modify any non-SkillStack fields** — only remove the fields that now belong in skillstack.json.
+
+**Fields to strip from plugin entries:** `license_provider`, `license_config`, `license_model`, `license_options`, `free_skills`, `creator_contact`, `polar_org_id`, `polar_product_id`.
+
+**Fields to strip from top level:** `storefront_repo`.
+
+If any fields were removed, show the creator what was cleaned up:
+```
+Cleaned up marketplace.json — removed SkillStack fields that now live in skillstack.json:
+  - my-plugin: license_provider, license_config, license_model, creator_contact
+  - storefront_repo (top level)
+```
+
+If no stale fields are found, skip silently.
 
 ### Step 6: Install GitHub App
 
@@ -368,10 +357,12 @@ Display:
 Stage and commit the source repo changes:
 
 ```bash
-git add .claude-plugin/marketplace.json
+git add .claude-plugin/skillstack.json .claude-plugin/marketplace.json
 git commit -m "feat: connect to SkillStack distribution"
 git push
 ```
+
+Both files are staged: skillstack.json (new/updated config) and marketplace.json (possible cleanup of stale SkillStack fields). If marketplace.json had no changes, git will ignore it automatically.
 
 ### Step 9: Verify registration
 
@@ -407,6 +398,7 @@ Buyers can add your marketplace with:
 How it works from here:
 - Just develop normally — commit and push as usual
 - When you bump the version in marketplace.json, SkillStack automatically picks it up
+- Licensing config lives in skillstack.json; plugin metadata stays in marketplace.json
 - Your storefront at store.skillstack.sh always reflects the latest version
 - Keep plugin.json version in sync with marketplace.json — the hook will remind you if they diverge
 - To connect another plugin later: run "publish" again
