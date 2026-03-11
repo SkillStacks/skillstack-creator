@@ -4,6 +4,14 @@ All notable changes to the SkillStack Creator Plugin are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Versioning follows [Semantic Versioning](https://semver.org/).
 
+## [0.5.1] - 2026-03-11
+
+### Changed
+- `/publish` skill now explains what `skillstack.json` is and why it's being created before writing it
+- Commit/push step explains what pushing triggers (webhook registration, automatic updates) and asks for explicit permission
+- GitHub App install step explains why it needs read access (fetching plugin code for buyers)
+- Storefront URL step explains the full flow: push → webhook → registration → buyer access
+
 ## [0.5.0] - 2026-03-11
 
 ### Changed
