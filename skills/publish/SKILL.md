@@ -217,9 +217,9 @@ Ask the creator:
 
 Before writing the file, briefly explain what's happening and why:
 
-> "I'm going to create a `skillstack.json` config file in your repo. This is what connects your plugin to SkillStack — it tells SkillStack which payment provider you're using, what license model to enforce, and which skills (if any) are free.
+> "I'm going to create a `.claude-plugin/skillstack.json` config file in your repo. This is what connects your plugin to SkillStack — it tells SkillStack which payment provider you're using, what license model to enforce, and which skills (if any) are free.
 >
-> This file stays in your private repo alongside your existing `marketplace.json`. Your `marketplace.json` stays untouched — it's your standard Claude Code plugin manifest. The `skillstack.json` is purely for SkillStack distribution."
+> This file lives alongside your existing `marketplace.json` in `.claude-plugin/`. Your `marketplace.json` stays untouched — it's your standard Claude Code plugin manifest. The `skillstack.json` is purely for SkillStack distribution."
 
 Write SkillStack distribution config to `.claude-plugin/skillstack.json`. **Do NOT add licensing fields to marketplace.json** — marketplace.json is for Claude Code plugin metadata only; skillstack.json is for SkillStack distribution config.
 
@@ -350,36 +350,23 @@ Ask the creator to confirm. Offer these options:
 
 After the creator confirms installation, proceed to Step 7.
 
-### Step 7: Display storefront URL and explain next steps
+### Step 7: Commit and push source repo
 
-The storefront is automatically generated from the registered plugins. Derive the GitHub org from `git remote get-url origin` (extract the org/user from the URL).
+To register, we need to push the config to the source repo. Derive the GitHub org from `git remote get-url origin` (extract the org/user from the URL).
 
-Display the storefront URL, then explain what needs to happen next in plain language:
+Ask the creator for permission before running any git commands. Explain what pushing does:
 
-> "Once your plugin is registered, buyers will find it at your auto-generated storefront:
+> "To register your plugin, we need to push the `.claude-plugin/skillstack.json` config we just created to your private repo. When GitHub receives that push, it notifies SkillStack, which reads your config and starts distributing your plugin. This is also how future updates work — every time you bump the version and push, SkillStack automatically picks it up and delivers the update to your buyers (with license enforcement if applicable).
 >
-> `https://store.skillstack.sh/s/<github_org>/<marketplace-slug>/marketplace.json`
+> Your source code stays private — SkillStack only reads the config files and serves packaged tarballs to authorized buyers.
 >
-> Buyers add it with:
-> `/plugin marketplace add https://store.skillstack.sh/s/<github_org>/<marketplace-slug>/marketplace.json`
->
-> **To register your plugin**, we need to push the `skillstack.json` config we just created to your private repo. When GitHub receives that push, it notifies SkillStack, which reads your config and starts distributing your plugin. This is also how future updates work — every time you bump the version and push, SkillStack automatically picks it up and delivers the update to your buyers (with license enforcement if applicable).
->
-> Your source code stays private — SkillStack only reads the config files and serves packaged tarballs to authorized buyers."
-
-### Step 8: Commit and push source repo
-
-Ask the creator for permission before running any git commands. Be specific about what will happen:
-
-> "Ready to push this to your repo. Here's what I'll run:
+> Ready to push. Here's what I'll run:
 >
 > ```
 > git add .claude-plugin/skillstack.json .claude-plugin/marketplace.json
 > git commit -m "feat: connect <plugin-name> to SkillStack distribution"
 > git push
 > ```
->
-> This pushes the config to your **private** repo, which triggers SkillStack to register your plugin. Nothing public changes — your source code stays private.
 >
 > Go ahead?"
 
@@ -393,7 +380,7 @@ git push
 
 Both files are staged: skillstack.json (new/updated config) and marketplace.json (possible cleanup of stale SkillStack fields). If marketplace.json had no changes, git will ignore it automatically.
 
-### Step 9: Verify registration
+### Step 8: Verify registration
 
 Wait ~5 seconds for the webhook to fire, then call the `skillstack_list` MCP tool.
 
@@ -408,7 +395,7 @@ If a plugin doesn't appear:
 - Verify the plugin has a `version` field — without it, the plugin won't register
 - Try pushing an empty commit to re-trigger the webhook
 
-### Step 10: Print summary
+### Step 9: Print summary
 
 Show the creator:
 
@@ -424,7 +411,7 @@ Storefront: https://store.skillstack.sh/s/<org>/<marketplace-slug>/marketplace.j
 Buyers can add your marketplace with:
   /plugin marketplace add https://store.skillstack.sh/s/<org>/<marketplace-slug>/marketplace.json
 
-Your storefront URL is also saved in your skillstack.json so you can always find it there.
+Your storefront URL is also saved in your .claude-plugin/skillstack.json so you can always find it there.
 
 How updates work:
 - Develop normally — commit and push as usual
