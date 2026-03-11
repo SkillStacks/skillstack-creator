@@ -408,8 +408,18 @@ Distributed plugins:
 Source repo: <source-repo-url>
 Storefront: https://store.skillstack.sh/s/<org>/<marketplace-slug>/marketplace.json
 
-Buyers can add your marketplace with:
-  /plugin marketplace add https://store.skillstack.sh/s/<org>/<marketplace-slug>/marketplace.json
+Quick start for buyers:
+  # 1. Install SkillStack (one-time)
+  /plugin marketplace add https://github.com/SkillStacks/skillstack.git
+  /plugin install skillstack@skillstack-marketplace
+  # Select "Install for you (user scope)" when prompted
+  # Restart Claude Code
+
+  # 2. Activate and install
+  /activate-license
+  # Paste your license key when prompted
+  # Follow Claude's instructions to install <plugin-name>
+  # Restart Claude Code
 
 Your storefront URL is also saved in your .claude-plugin/skillstack.json so you can always find it there.
 
