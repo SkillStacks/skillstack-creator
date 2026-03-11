@@ -386,9 +386,9 @@ The storefront is a separate PUBLIC repo that buyers use to discover plugins. It
 
 2. Ask the creator what they want to name their storefront repo (suggest `<org>-skillstack-storefront`).
 
-3. Create it:
+3. Create the repo (remote only — no local clone):
 ```bash
-gh repo create <org>/<storefront-name> --public --description "SkillStack plugins by <owner>" --clone
+gh repo create <org>/<storefront-name> --public --description "SkillStack plugins by <owner>"
 ```
 
 4. Generate the storefront `marketplace.json` in `.claude-plugin/marketplace.json`:
@@ -485,15 +485,28 @@ This is a [SkillStack](https://skillstack.sh) storefront — a distribution chan
 - **creator_contact**: Pull from the source marketplace.json. If not set, default to "open a ticket on this repo"
 - **Keep it short**: Buyers want to install, not read an essay
 
-5. Write the file, commit, and push:
+5. Commit files directly to the remote repo via the GitHub Contents API. Generate the full file content, base64-encode it, and push via `gh api`:
+
 ```bash
-cd <storefront-path>
-mkdir -p .claude-plugin
-# write marketplace.json
-git add .claude-plugin/marketplace.json README.md
-git commit -m "init: add SkillStack storefront"
-git push -u origin main
+# Commit marketplace.json
+echo '<marketplace-json-content>' | base64 | tr -d '\n' > /tmp/ss-marketplace-b64.txt
+gh api repos/<org>/<storefront-name>/contents/.claude-plugin/marketplace.json \
+  -X PUT \
+  -f message="init: add SkillStack storefront" \
+  -f content="$(cat /tmp/ss-marketplace-b64.txt)"
+
+# Commit README.md
+echo '<readme-content>' | base64 | tr -d '\n' > /tmp/ss-readme-b64.txt
+gh api repos/<org>/<storefront-name>/contents/README.md \
+  -X PUT \
+  -f message="docs: add buyer README" \
+  -f content="$(cat /tmp/ss-readme-b64.txt)"
+
+# Clean up temp files
+rm -f /tmp/ss-marketplace-b64.txt /tmp/ss-readme-b64.txt
 ```
+
+**Important:** No local directory is created. The storefront exists only on GitHub. Use temp files for the base64 content to avoid shell escaping issues with complex JSON/markdown.
 
 ### Step 8: Write creator config
 
