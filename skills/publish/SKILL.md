@@ -410,7 +410,17 @@ gh api repos/<storefront_repo>/contents/.claude-plugin/marketplace.json --jq '.c
 gh repo create <org>/<storefront-name> --public --description "SkillStack plugins by <owner>"
 ```
 
-5. Generate the storefront `marketplace.json` with entries for ALL distributed plugins:
+5. Add the storefront repo to the SkillStack GitHub App installation. This gives the webhook write access so it can auto-sync versions to the storefront on future pushes:
+
+```bash
+REPO_ID=$(gh api repos/<org>/<storefront-name> --jq '.id')
+INSTALL_ID=$(gh api user/installations --jq '.installations[] | select(.app_slug == "skillstack-distribution") | .id')
+gh api user/installations/$INSTALL_ID/repositories/$REPO_ID -X PUT
+```
+
+If this fails (e.g., App not installed), warn but continue — the storefront will still work, but version auto-sync won't be available.
+
+7. Generate the storefront `marketplace.json` with entries for ALL distributed plugins:
 ```json
 {
   "name": "<storefront-name>",
@@ -432,9 +442,9 @@ gh repo create <org>/<storefront-name> --public --description "SkillStack plugin
 }
 ```
 
-6. Generate a buyer-facing `README.md` (see README template and rules below).
+8. Generate a buyer-facing `README.md` (see README template and rules below).
 
-7. Commit both files directly to the remote repo via `gh api`:
+9. Commit both files directly to the remote repo via `gh api`:
 
 ```bash
 # Commit marketplace.json
@@ -465,7 +475,17 @@ rm -f /tmp/ss-marketplace-b64.txt /tmp/ss-readme-b64.txt
 
 The storefront already exists. Add the new plugin entries and update the README.
 
-1. Fetch the current storefront marketplace.json with its SHA (needed for updates):
+1. Ensure the storefront repo is in the SkillStack GitHub App installation (needed for webhook auto-sync). This is idempotent — safe to run even if already added:
+
+```bash
+REPO_ID=$(gh api repos/<storefront_repo> --jq '.id')
+INSTALL_ID=$(gh api user/installations --jq '.installations[] | select(.app_slug == "skillstack-distribution") | .id')
+gh api user/installations/$INSTALL_ID/repositories/$REPO_ID -X PUT
+```
+
+If this fails, warn but continue.
+
+2. Fetch the current storefront marketplace.json with its SHA (needed for updates):
 
 ```bash
 RESPONSE=$(gh api repos/<storefront_repo>/contents/.claude-plugin/marketplace.json)
@@ -473,7 +493,7 @@ CURRENT_CONTENT=$(echo "$RESPONSE" | jq -r '.content' | base64 -d)
 SHA=$(echo "$RESPONSE" | jq -r '.sha')
 ```
 
-2. Parse `CURRENT_CONTENT` as JSON. For each **new** plugin being added to SkillStack in this session, append an entry to the `plugins` array:
+3. Parse `CURRENT_CONTENT` as JSON. For each **new** plugin being added to SkillStack in this session, append an entry to the `plugins` array:
 
 ```json
 {
@@ -489,9 +509,9 @@ SHA=$(echo "$RESPONSE" | jq -r '.sha')
 
 Do NOT modify existing plugin entries — the webhook auto-sync handles version updates.
 
-3. Also apply any storefront health check fixes from Step 1b (redundant entries, format migrations).
+4. Also apply any storefront health check fixes from Step 1b (redundant entries, format migrations).
 
-4. Commit the updated marketplace.json:
+5. Commit the updated marketplace.json:
 
 ```bash
 echo '<updated-json>' | base64 | tr -d '\n' > /tmp/ss-marketplace-b64.txt
@@ -503,7 +523,7 @@ gh api repos/<storefront_repo>/contents/.claude-plugin/marketplace.json \
 rm -f /tmp/ss-marketplace-b64.txt
 ```
 
-5. Update the README to include the new plugin in the plugin table. Fetch current README with SHA and commit the update:
+6. Update the README to include the new plugin in the plugin table. Fetch current README with SHA and commit the update:
 
 ```bash
 README_RESPONSE=$(gh api repos/<storefront_repo>/contents/README.md)
