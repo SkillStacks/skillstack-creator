@@ -76,7 +76,13 @@ Want me to auto-fix the issues I can? (I'll show you the changes before writing)
 
 **If no issues are found**, skip silently and proceed.
 
-**Storefront health check:** If `.skillstack-creator.json` exists and points to a local storefront, also check the storefront's `marketplace.json`:
+**Storefront health check:** If `.skillstack-creator.json` exists and has a `storefront_repo` field, fetch the storefront's `marketplace.json` from GitHub:
+
+```bash
+gh api repos/<storefront_repo>/contents/.claude-plugin/marketplace.json --jq '.content' | base64 -d
+```
+
+If the fetch fails (404 or error), skip the storefront health check silently and proceed. If it succeeds, parse the JSON and check for these patterns:
 
 | Pattern | Issue | Fix |
 |---------|-------|-----|
@@ -91,7 +97,7 @@ If the storefront has a redundant SkillStack buyer plugin entry:
      → Will remove it from the storefront
 ```
 
-If storefront fixes are needed, apply them in Step 7 (when the storefront is updated/created).
+If storefront fixes are needed, apply them in Step 7 via `gh api` (fetching the current file with its SHA, modifying the content, and committing the update).
 
 ### Step 2: Select plugins to distribute
 
