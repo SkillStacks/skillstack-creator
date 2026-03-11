@@ -417,12 +417,11 @@ Storefront: https://store.skillstack.sh/s/<org>/marketplace.json
 Buyers can add your marketplace with:
   /plugin marketplace add https://store.skillstack.sh/s/<org>/marketplace.json
 
-How it works from here:
-- Just develop normally — commit and push as usual
-- When you bump the version in marketplace.json, SkillStack automatically picks it up
-- Licensing config lives in skillstack.json; plugin metadata stays in marketplace.json
-- Your storefront at store.skillstack.sh always reflects the latest version
-- Keep plugin.json version in sync with marketplace.json — the hook will remind you if they diverge
-- To connect another plugin later: run "publish" again
-- If something's not working: run the "verify" skill
+How updates work:
+- Develop normally — commit and push as usual
+- When you're ready to release an update, bump the `version` in your marketplace.json and push. SkillStack automatically detects the new version and delivers it to your buyers.
+- The SkillStack Creator plugin includes a built-in reminder that will let you know if you've changed plugin files without bumping the version, so you won't accidentally forget
+- Your storefront at store.skillstack.sh always reflects the latest registered version
+- To connect another plugin later: run `/publish` again
+- If something's not working: run `/verify` for diagnostics
 ```
