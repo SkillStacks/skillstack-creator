@@ -85,14 +85,25 @@ If the source marketplace.json has a `free_skills` field for any plugin:
 
 ### Step 3c: Check storefront sync
 
-If `.skillstack-creator.json` exists, read it to find the storefront repo location (`storefront_local_path`).
+If `.skillstack-creator.json` exists, read it to find the `storefront_repo` field (e.g., `my-org/my-storefront`).
 
-If the storefront path exists locally:
+Fetch the storefront's marketplace.json from GitHub:
 
-1. Read the storefront's `.claude-plugin/marketplace.json`
-2. For each plugin distributed on SkillStack, check if it has a corresponding entry in the storefront
-3. Check for redundant SkillStack buyer plugin entry (see below)
-4. Report the results:
+```bash
+gh api repos/<storefront_repo>/contents/.claude-plugin/marketplace.json --jq '.content' | base64 -d
+```
+
+If the fetch fails (repo doesn't exist, file missing, or `gh` not authenticated), report:
+```
+  Storefront: UNREACHABLE — could not fetch from <storefront_repo>
+    Verify the repo exists and `gh auth status` shows you're logged in.
+```
+
+If the fetch succeeds, parse the JSON and check:
+
+1. For each plugin distributed on SkillStack, check if it has a corresponding entry in the storefront
+2. Check for redundant SkillStack buyer plugin entry (see below)
+3. Report the results:
 
 **All plugins in storefront:**
 ```
@@ -117,9 +128,23 @@ If the storefront contains a plugin entry named `skillstack` with a GitHub sourc
     Want me to remove it?
 ```
 
-If the creator says yes, remove the entry from the storefront's marketplace.json, commit, and push.
+If the creator says yes, fetch the current file with its SHA, remove the entry, and commit the update:
 
-If `.skillstack-creator.json` doesn't exist or the storefront path is missing, skip this check silently.
+```bash
+# Fetch current file + SHA
+RESPONSE=$(gh api repos/<storefront_repo>/contents/.claude-plugin/marketplace.json)
+SHA=$(echo "$RESPONSE" | jq -r '.sha')
+# Update with modified content
+echo '<updated-json>' | base64 | tr -d '\n' > /tmp/ss-storefront-b64.txt
+gh api repos/<storefront_repo>/contents/.claude-plugin/marketplace.json \
+  -X PUT \
+  -f message="chore: remove redundant SkillStack entry" \
+  -f content="$(cat /tmp/ss-storefront-b64.txt)" \
+  -f sha="$SHA"
+rm -f /tmp/ss-storefront-b64.txt
+```
+
+If `.skillstack-creator.json` doesn't exist or has no `storefront_repo` field, skip this check silently.
 
 **Storefront repo field check:** Verify that the source `marketplace.json` has a top-level `storefront_repo` field. This is needed for the creator dashboard to show a storefront link.
 
@@ -131,10 +156,14 @@ If `.skillstack-creator.json` doesn't exist or the storefront path is missing, s
     Add "storefront_repo": "<org>/<name>" as a top-level field in marketplace.json and push.
   ```
 
-**Storefront README check:** If the storefront path exists locally, check for a `README.md`.
+**Storefront README check:** Check if README.md exists in the storefront repo:
 
-- If present: `Storefront README: present`
-- If missing:
+```bash
+gh api repos/<storefront_repo>/contents/README.md --silent 2>/dev/null
+```
+
+- If the request succeeds (200): `Storefront README: present`
+- If 404 or error:
   ```
   Storefront README: MISSING
     Buyers who visit your storefront on GitHub won't see instructions.
