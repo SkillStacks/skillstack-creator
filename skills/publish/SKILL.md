@@ -18,7 +18,7 @@ Read `.claude-plugin/marketplace.json` from the current repo.
 If it doesn't exist, stop and tell the creator:
 > "This repo doesn't have a `.claude-plugin/marketplace.json`. SkillStack distributes existing Claude Code plugins — you need a plugin marketplace set up first. See the Claude Code docs on creating plugins."
 
-Also check if `.skillstack-creator.json` exists (indicates a prior publish). If it does, show which plugins are already connected to SkillStack and which are not:
+Also check if any plugins already have SkillStack fields (`license_provider`, `license_config`, etc.) in the marketplace.json (indicates a prior publish). If so, show which plugins are already connected to SkillStack and which are not:
 
 ```
 Plugins in this repo:
@@ -48,7 +48,6 @@ After reading the marketplace.json, scan for legacy or outdated patterns. If any
 | `polar_org_id` / `polar_product_id` on a plugin entry | Legacy format from pre-v0.3.0 | Migrate to `"license_provider": "polar"` + `"license_config": { "org_id": "<value>", "product_id": "<value>" }` and remove old fields |
 | `license_model: "onetime_snapshot"` | Renamed in worker v0.2.0 | Change to `"onetime"` |
 | Plugin entry missing `version` field | Plugin will be invisible to buyers (404) | Warn creator — they MUST add a version |
-| Missing top-level `storefront_repo` | Dashboard won't show storefront link | Offer to add it (pull from `.skillstack-creator.json` if available) |
 | Missing `creator_contact` on paid plugins | Buyers can't reach creator for license issues | Recommend adding one (don't block) |
 | `license_model` AND `license_options` both present | Conflicting — worker ignores `license_model` when `license_options` exists | Remove `license_model`, keep `license_options` |
 
@@ -75,29 +74,6 @@ Want me to auto-fix the issues I can? (I'll show you the changes before writing)
 **If the creator confirms**, apply the fixes to the in-memory representation and carry them forward to Step 5 (where marketplace.json is written). Do NOT write the file yet — let the normal Step 5 flow handle writing with all changes batched together.
 
 **If no issues are found**, skip silently and proceed.
-
-**Storefront health check:** If `.skillstack-creator.json` exists and has a `storefront_repo` field, fetch the storefront's `marketplace.json` from GitHub:
-
-```bash
-gh api repos/<storefront_repo>/contents/.claude-plugin/marketplace.json --jq '.content' | base64 -d
-```
-
-If the fetch fails (404 or error), skip the storefront health check silently and proceed. If it succeeds, parse the JSON and check for these patterns:
-
-| Pattern | Issue | Fix |
-|---------|-------|-----|
-| Contains a `skillstack` plugin entry with GitHub source | Redundant — buyers now install SkillStack as a standalone marketplace | Offer to remove it |
-| Plugin `source` missing `"source": "npm"` nested format | Old flat source format | Migrate to `{ "source": "npm", "package": "@skillstack/<slug>" }` |
-
-If the storefront has a redundant SkillStack buyer plugin entry:
-
-```
-  4. OUTDATED: Your storefront includes the SkillStack buyer plugin
-     → Buyers now install SkillStack separately. This entry is redundant.
-     → Will remove it from the storefront
-```
-
-If storefront fixes are needed, apply them in Step 7 via `gh api` (fetching the current file with its SHA, modifying the content, and committing the update).
 
 ### Step 2: Select plugins to distribute
 
@@ -345,18 +321,6 @@ The `free_skills` array contains the exact skill directory names from `skills/`.
 
 This is shown to buyers when they encounter license configuration errors, so they can reach you directly. Can be an email or URL (e.g., Discord invite link).
 
-**For all plugins (free and paid), also add a top-level `storefront_repo` field** (outside the `plugins` array):
-```json
-{
-  "storefront_repo": "<org>/<storefront-name>",
-  "plugins": [ ... ]
-}
-```
-
-This field tells SkillStack where the buyer-facing storefront lives. It is synced to the database during webhook processing and displayed as a link in the creator dashboard.
-
-If `storefront_repo` is already set (from a prior publish), update it only if the storefront name changed.
-
 Preserve all existing fields, formatting, and order. The result should look like the creator's original entry plus the provider fields appended.
 
 **Backward compatibility:** Old format with `polar_org_id`/`polar_product_id` at the top level still works — the webhook handles both formats. However, Step 1b should have already migrated these to the current format. Old `license_model` format is auto-normalized to `license_options` by the webhook.
@@ -384,257 +348,32 @@ Ask the creator to confirm. Offer these options:
 
 After the creator confirms installation, proceed to Step 7.
 
-### Step 7: Create or update storefront repo
+### Step 7: Display storefront URL
 
-The storefront is a separate PUBLIC repo that buyers use to discover plugins. It contains only npm pointers — no source code, no pricing config.
+The storefront is automatically generated from the registered plugins. Derive the GitHub org from `git remote get-url origin` (extract the org/user from the URL).
 
-1. Derive the GitHub org from `git remote get-url origin` (extract the org/user from the URL).
+Display:
 
-2. **Check if a storefront already exists.** If `.skillstack-creator.json` has a `storefront_repo` field, try to fetch the storefront's marketplace.json:
+> "Your storefront is live at:
+>
+> `https://store.skillstack.sh/s/<github_org>/marketplace.json`
+>
+> Buyers add it with:
+> `/plugin marketplace add https://store.skillstack.sh/s/<github_org>/marketplace.json`
+>
+> No separate repo needed — this is dynamically generated from your registered plugins."
 
-```bash
-gh api repos/<storefront_repo>/contents/.claude-plugin/marketplace.json --jq '.content' | base64 -d
-```
-
-**If the fetch succeeds → go to Step 7b (update existing storefront).**
-**If the fetch fails (404 or no config) → continue with Step 7a (create new storefront).**
-
----
-
-#### Step 7a: Create new storefront
-
-3. Ask the creator what they want to name their storefront repo (suggest `<org>-skillstack-storefront`).
-
-4. Create the repo (remote only — no local clone):
-```bash
-gh repo create <org>/<storefront-name> --public --description "SkillStack plugins by <owner>"
-```
-
-5. Add the storefront repo to the SkillStack GitHub App installation. This gives the webhook write access so it can auto-sync versions to the storefront on future pushes:
-
-```bash
-REPO_ID=$(gh api repos/<org>/<storefront-name> --jq '.id')
-INSTALL_ID=$(gh api user/installations --jq '.installations[] | select(.app_slug == "skillstack-distribution") | .id')
-gh api user/installations/$INSTALL_ID/repositories/$REPO_ID -X PUT
-```
-
-If this fails (e.g., App not installed), warn but continue — the storefront will still work, but version auto-sync won't be available.
-
-7. Generate the storefront `marketplace.json` with entries for ALL distributed plugins:
-```json
-{
-  "name": "<storefront-name>",
-  "description": "SkillStack plugins by <owner>",
-  "owner": {
-    "name": "<owner-name>"
-  },
-  "plugins": [
-    {
-      "name": "<plugin-name>",
-      "description": "<description>",
-      "source": {
-        "source": "npm",
-        "package": "@skillstack/<org>-<plugin-name>",
-        "registry": "https://mcp.skillstack.sh"
-      }
-    }
-  ]
-}
-```
-
-8. Generate a buyer-facing `README.md` (see README template and rules below).
-
-9. Commit both files directly to the remote repo via `gh api`:
-
-```bash
-# Commit marketplace.json
-echo '<marketplace-json-content>' | base64 | tr -d '\n' > /tmp/ss-marketplace-b64.txt
-gh api repos/<org>/<storefront-name>/contents/.claude-plugin/marketplace.json \
-  -X PUT \
-  -f message="init: add SkillStack storefront" \
-  -f content="$(cat /tmp/ss-marketplace-b64.txt)"
-
-# Commit README.md
-echo '<readme-content>' | base64 | tr -d '\n' > /tmp/ss-readme-b64.txt
-gh api repos/<org>/<storefront-name>/contents/README.md \
-  -X PUT \
-  -f message="docs: add buyer README" \
-  -f content="$(cat /tmp/ss-readme-b64.txt)"
-
-# Clean up temp files
-rm -f /tmp/ss-marketplace-b64.txt /tmp/ss-readme-b64.txt
-```
-
-**Important:** No local directory is created. The storefront exists only on GitHub. Use temp files for the base64 content to avoid shell escaping issues with complex JSON/markdown.
-
-**Then skip to Step 8.**
-
----
-
-#### Step 7b: Update existing storefront
-
-The storefront already exists. Add the new plugin entries and update the README.
-
-1. Ensure the storefront repo is in the SkillStack GitHub App installation (needed for webhook auto-sync). This is idempotent — safe to run even if already added:
-
-```bash
-REPO_ID=$(gh api repos/<storefront_repo> --jq '.id')
-INSTALL_ID=$(gh api user/installations --jq '.installations[] | select(.app_slug == "skillstack-distribution") | .id')
-gh api user/installations/$INSTALL_ID/repositories/$REPO_ID -X PUT
-```
-
-If this fails, warn but continue.
-
-2. Fetch the current storefront marketplace.json with its SHA (needed for updates):
-
-```bash
-RESPONSE=$(gh api repos/<storefront_repo>/contents/.claude-plugin/marketplace.json)
-CURRENT_CONTENT=$(echo "$RESPONSE" | jq -r '.content' | base64 -d)
-SHA=$(echo "$RESPONSE" | jq -r '.sha')
-```
-
-3. Parse `CURRENT_CONTENT` as JSON. For each **new** plugin being added to SkillStack in this session, append an entry to the `plugins` array:
-
-```json
-{
-  "name": "<new-plugin-name>",
-  "description": "<description>",
-  "source": {
-    "source": "npm",
-    "package": "@skillstack/<org>-<new-plugin-name>",
-    "registry": "https://mcp.skillstack.sh"
-  }
-}
-```
-
-Do NOT modify existing plugin entries — the webhook auto-sync handles version updates.
-
-4. Also apply any storefront health check fixes from Step 1b (redundant entries, format migrations).
-
-5. Commit the updated marketplace.json:
-
-```bash
-echo '<updated-json>' | base64 | tr -d '\n' > /tmp/ss-marketplace-b64.txt
-gh api repos/<storefront_repo>/contents/.claude-plugin/marketplace.json \
-  -X PUT \
-  -f message="feat: add <new-plugin-name> to storefront" \
-  -f content="$(cat /tmp/ss-marketplace-b64.txt)" \
-  -f sha="$SHA"
-rm -f /tmp/ss-marketplace-b64.txt
-```
-
-6. Update the README to include the new plugin in the plugin table. Fetch current README with SHA and commit the update:
-
-```bash
-README_RESPONSE=$(gh api repos/<storefront_repo>/contents/README.md)
-README_SHA=$(echo "$README_RESPONSE" | jq -r '.sha')
-echo '<updated-readme>' | base64 | tr -d '\n' > /tmp/ss-readme-b64.txt
-gh api repos/<storefront_repo>/contents/README.md \
-  -X PUT \
-  -f message="docs: add <new-plugin-name> to README" \
-  -f content="$(cat /tmp/ss-readme-b64.txt)" \
-  -f sha="$README_SHA"
-rm -f /tmp/ss-readme-b64.txt
-```
-
----
-
-#### Storefront format rules (apply to both 7a and 7b)
-
-**NOTE:** Do NOT include the SkillStack buyer plugin in the storefront. Buyers install SkillStack once as a standalone marketplace (`/plugin marketplace add https://github.com/SkillStacks/skillstack.git`) before adding any creator storefronts. The storefront should only contain the creator's own plugins.
-
-Only include plugins the creator selected for SkillStack distribution in Step 2.
-
-**Critical format rules:**
-- `plugins` MUST be an **array** (not an object)
-- `source` MUST be a **nested object** with `"source": "npm"` and `"package"` fields
-- The package name uses the namespaced slug: `@skillstack/<org>-<plugin-name>`
-- Do NOT include `version`, `polar_*`, `license_model`, `author`, `category`, or `tags` in the storefront — those belong only in the source repo. The webhook auto-syncs `version` and `registry` on version bumps.
-
-#### README template (apply to both 7a and 7b)
-
-~~~markdown
-# <Storefront Display Name>
-
-<One-line description, e.g., "Claude Code plugins by <owner-name>.">
-
-## Available Plugins
-
-| Plugin | Description | License |
-|--------|-------------|---------|
-| <plugin-name> | <description> | <license-type> |
-
-## Quick Start
-
-### 1. Install SkillStack (one-time)
-
-```
-/plugin marketplace add https://github.com/SkillStacks/skillstack.git
-/plugin install skillstack@skillstack-marketplace
-```
-
-Select "Install for you (user scope)" when prompted. Restart Claude Code.
-
-### 2. Activate and install
-
-```
-/activate-license
-```
-
-Paste your license key when prompted. Claude will guide you through adding the storefront and installing the plugin. Restart Claude Code when done.
-
-## How It Works
-
-This is a [SkillStack](https://skillstack.sh) storefront — a distribution channel for Claude Code plugins.
-
-- **Free plugins** install instantly with no setup
-- **Freemium plugins** include free skills you can try before purchasing
-- **Paid plugins** require a license key from the payment provider listed above
-
-## Support
-
-<If creator_contact is set: "For support, contact: <creator_contact>">
-<If creator_contact is NOT set: "For issues, open a ticket on this repo.">
-~~~
-
-**Rules for generating the README:**
-
-- **License column**: Use the actual license model from the source repo's marketplace.json:
-  - `free` (or no license fields) → "Free"
-  - `subscription` → "Subscription"
-  - `onetime` → "One-time purchase"
-  - `lifetime` → "Lifetime"
-  - Multi-license (`license_options`) → List all, e.g., "One-time / Lifetime"
-  - Freemium (has `free_skills`) → Append "(freemium — N free skills)" to the license type
-- **Do NOT include pricing amounts** unless the creator explicitly provides them — just show the license type
-- **Plugin list**: Only include plugins the creator selected for SkillStack distribution (same ones in the storefront marketplace.json), NOT the SkillStack buyer plugin itself
-- **creator_contact**: Pull from the source marketplace.json. If not set, default to "open a ticket on this repo"
-- **Keep it short**: Buyers want to install, not read an essay
-
-### Step 8: Write creator config
-
-Create `.skillstack-creator.json` in the source repo root:
-
-```json
-{
-  "storefront_repo": "<org>/<storefront-name>",
-  "org": "<org>"
-}
-```
-
-This persists across sessions so the publish and verify skills know the storefront repo for remote API calls.
-
-### Step 9: Commit and push source repo
+### Step 8: Commit and push source repo
 
 Stage and commit the source repo changes:
 
 ```bash
-git add .claude-plugin/marketplace.json .skillstack-creator.json
+git add .claude-plugin/marketplace.json
 git commit -m "feat: connect to SkillStack distribution"
 git push
 ```
 
-### Step 10: Verify registration
+### Step 9: Verify registration
 
 Wait ~5 seconds for the webhook to fire, then call the `skillstack_list` MCP tool.
 
@@ -649,7 +388,7 @@ If a plugin doesn't appear:
 - Verify the plugin has a `version` field — without it, the plugin won't register
 - Try pushing an empty commit to re-trigger the webhook
 
-### Step 11: Print summary
+### Step 10: Print summary
 
 Show the creator:
 
@@ -660,14 +399,15 @@ Distributed plugins:
   - <plugin-name> → <org>-<plugin-name> (v<version>, <free|subscription|onetime|lifetime|multi-license: onetime+lifetime>[, N free / M total skills])
 
 Source repo: <source-repo-url>
-Storefront: <storefront-repo-url>
+Storefront: https://store.skillstack.sh/s/<org>/marketplace.json
 
 Buyers can add your marketplace with:
-  /plugin marketplace add https://github.com/<org>/<storefront-name>.git
+  /plugin marketplace add https://store.skillstack.sh/s/<org>/marketplace.json
 
 How it works from here:
 - Just develop normally — commit and push as usual
-- When you bump the version in marketplace.json, SkillStack automatically picks it up and syncs it to your storefront
+- When you bump the version in marketplace.json, SkillStack automatically picks it up
+- Your storefront at store.skillstack.sh always reflects the latest version
 - Keep plugin.json version in sync with marketplace.json — the hook will remind you if they diverge
 - To connect another plugin later: run "publish" again
 - If something's not working: run the "verify" skill

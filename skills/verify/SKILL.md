@@ -83,92 +83,39 @@ If the source marketplace.json has a `free_skills` field for any plugin:
 
 **If free_skills is empty or not present:** Skip this check.
 
-### Step 3c: Check storefront sync
+### Step 3c: Verify storefront
 
-If `.skillstack-creator.json` exists, read it to find the `storefront_repo` field (e.g., `my-org/my-storefront`).
-
-Fetch the storefront's marketplace.json from GitHub:
+Derive the GitHub org from `git remote get-url origin`. Fetch the buyer-facing storefront:
 
 ```bash
-gh api repos/<storefront_repo>/contents/.claude-plugin/marketplace.json --jq '.content' | base64 -d
+curl -s https://store.skillstack.sh/s/<github_org>/marketplace.json
 ```
 
-If the fetch fails (repo doesn't exist, file missing, or `gh` not authenticated), report:
-```
-  Storefront: UNREACHABLE — could not fetch from <storefront_repo>
-    Verify the repo exists and `gh auth status` shows you're logged in.
-```
+Check:
+1. Response is 200 (not 404)
+2. All distributed plugins appear in the `plugins` array
+3. Versions match what's in the source marketplace.json
+4. Registry is `https://mcp.skillstack.sh`
 
-If the fetch succeeds, parse the JSON and check:
-
-1. For each plugin distributed on SkillStack, check if it has a corresponding entry in the storefront
-2. Check for redundant SkillStack buyer plugin entry (see below)
-3. Report the results:
-
-**All plugins in storefront:**
+**If storefront is valid:**
 ```
-  Storefront: all [N] distributed plugins listed
+  Storefront: https://store.skillstack.sh/s/<github_org>/marketplace.json
+    All [N] distributed plugins listed with correct versions
 ```
 
-**Missing plugins:**
+**If storefront returns 404:**
 ```
-  Storefront: WARNING — missing entries for: [plugin-name-1], [plugin-name-2]
-    These plugins are registered in SkillStack but buyers can't discover them.
-    Add npm pointer entries to your storefront's marketplace.json and push.
-```
-
-**Redundant SkillStack buyer plugin:**
-
-If the storefront contains a plugin entry named `skillstack` with a GitHub source (e.g., `"url": "https://github.com/SkillStacks/skillstack.git"`), flag it:
-
-```
-  Storefront: OUTDATED — contains SkillStack buyer plugin entry
-    Buyers now install SkillStack as a standalone marketplace before adding storefronts.
-    This entry is redundant and should be removed.
-    Want me to remove it?
+  Storefront: NOT FOUND at store.skillstack.sh/s/<github_org>/marketplace.json
+    Plugins may not be registered yet. Push a change to trigger the webhook.
 ```
 
-If the creator says yes, fetch the current file with its SHA, remove the entry, and commit the update:
-
-```bash
-# Fetch current file + SHA
-RESPONSE=$(gh api repos/<storefront_repo>/contents/.claude-plugin/marketplace.json)
-SHA=$(echo "$RESPONSE" | jq -r '.sha')
-# Update with modified content
-echo '<updated-json>' | base64 | tr -d '\n' > /tmp/ss-storefront-b64.txt
-gh api repos/<storefront_repo>/contents/.claude-plugin/marketplace.json \
-  -X PUT \
-  -f message="chore: remove redundant SkillStack entry" \
-  -f content="$(cat /tmp/ss-storefront-b64.txt)" \
-  -f sha="$SHA"
-rm -f /tmp/ss-storefront-b64.txt
+**If plugins are missing or versions don't match:**
 ```
-
-If `.skillstack-creator.json` doesn't exist or has no `storefront_repo` field, skip this check silently.
-
-**Storefront repo field check:** Verify that the source `marketplace.json` has a top-level `storefront_repo` field. This is needed for the creator dashboard to show a storefront link.
-
-- If present: `Storefront repo: <org>/<name> (set)`
-- If missing but `.skillstack-creator.json` has `storefront_repo`:
-  ```
-  Storefront repo: NOT SET in marketplace.json
-    The dashboard won't show a storefront link.
-    Add "storefront_repo": "<org>/<name>" as a top-level field in marketplace.json and push.
-  ```
-
-**Storefront README check:** Check if README.md exists in the storefront repo:
-
-```bash
-gh api repos/<storefront_repo>/contents/README.md --silent 2>/dev/null
+  Storefront: WARNING — missing or outdated entries
+    Missing: [plugin-name-1]
+    Version mismatch: [plugin-name-2] (source: 1.2.0, storefront: 1.1.0)
+    Push a commit to re-trigger the webhook sync.
 ```
-
-- If the request succeeds (200): `Storefront README: present`
-- If 404 or error:
-  ```
-  Storefront README: MISSING
-    Buyers who visit your storefront on GitHub won't see instructions.
-    Run /publish again to regenerate, or create one manually.
-  ```
 
 ### Step 3e: Format health check
 
@@ -181,7 +128,6 @@ Scan the source `marketplace.json` for legacy or outdated patterns that still wo
 | `polar_org_id` / `polar_product_id` on a plugin | LEGACY | "Uses old Polar field format. Migrate to `license_provider` + `license_config`." |
 | `license_model: "onetime_snapshot"` | LEGACY | "Old license model name. Should be `onetime`." |
 | Plugin missing `version` | CRITICAL | "Plugin is invisible to buyers (404). Add a `version` field." |
-| Missing top-level `storefront_repo` | RECOMMENDED | "Dashboard won't show storefront link. Add `storefront_repo`." |
 | Missing `creator_contact` on paid plugins | RECOMMENDED | "Buyers who hit license errors won't know how to reach you." |
 | Both `license_model` AND `license_options` present | LEGACY | "Conflicting fields. Worker ignores `license_model` when `license_options` exists. Remove `license_model`." |
 
@@ -236,9 +182,8 @@ another-plugin (theailaunchpad-another-plugin)
   Free tier: not configured (pure paid)
   Creator contact: NOT SET (recommended for paid plugins)
 
-Storefront: all 2 distributed plugins listed
-  Storefront repo: SkillStacks/theailaunchpad-skillstack-storefront (set)
-  Storefront README: present
+Storefront: https://store.skillstack.sh/s/theailaunchpad/marketplace.json
+  All 2 distributed plugins listed with correct versions
 
 Overall: 2/3 plugins synced
 ```
@@ -266,10 +211,9 @@ If any plugins have issues, provide specific guidance:
 - "Push a commit to re-trigger the webhook sync."
 
 **Storefront missing plugins:**
-- "Your storefront doesn't list all distributed plugins."
-- "Add the missing npm pointer entries to your storefront's `.claude-plugin/marketplace.json`."
-- "Example entry: `{ \"name\": \"<plugin>\", \"description\": \"...\", \"source\": { \"source\": \"npm\", \"package\": \"@skillstack/<org>-<plugin>\" } }`"
+- "Your storefront at store.skillstack.sh doesn't list all distributed plugins."
+- "Push a commit to re-trigger the webhook sync — the storefront is generated dynamically from registered plugins."
 
 **Everything synced:**
 - "All plugins are registered and up to date!"
-- Storefront sync is checked automatically when `.skillstack-creator.json` exists (see Step 3c).
+- Storefront is verified automatically via store.skillstack.sh (see Step 3c).
