@@ -515,12 +515,11 @@ Create `.skillstack-creator.json` in the source repo root:
 ```json
 {
   "storefront_repo": "<org>/<storefront-name>",
-  "storefront_local_path": "<relative-or-absolute-path-to-cloned-storefront>",
   "org": "<org>"
 }
 ```
 
-This persists across sessions so the publish and verify skills know where to find things.
+This persists across sessions so the publish and verify skills know the storefront repo for remote API calls.
 
 ### Step 9: Commit and push source repo
 
