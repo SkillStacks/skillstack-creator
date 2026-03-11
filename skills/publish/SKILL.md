@@ -223,13 +223,20 @@ Before writing the file, briefly explain what's happening and why:
 
 Write SkillStack distribution config to `.claude-plugin/skillstack.json`. **Do NOT add licensing fields to marketplace.json** — marketplace.json is for Claude Code plugin metadata only; skillstack.json is for SkillStack distribution config.
 
-If `.claude-plugin/skillstack.json` already exists, merge the new plugin config into the existing `plugins` object.
+If `.claude-plugin/skillstack.json` already exists, merge the new plugin config into the existing `plugins` object. Always preserve any existing `storefront` field at the top level.
+
+**Storefront URL:** Derive the GitHub org/user from `git remote get-url origin` and include a top-level `storefront` field so the creator always has their storefront URL saved in their repo:
+
+```
+"storefront": "https://store.skillstack.sh/s/<github_org>/marketplace.json"
+```
 
 **For free plugins:** No skillstack.json entry needed. The existing marketplace.json entry works as-is.
 
 **For paid plugins with a single license type, add to skillstack.json:**
 ```json
 {
+  "storefront": "https://store.skillstack.sh/s/<github_org>/marketplace.json",
   "plugins": {
     "my-plugin": {
       "license_provider": "<polar|lemonsqueezy>",
@@ -417,6 +424,8 @@ Storefront: https://store.skillstack.sh/s/<org>/marketplace.json
 Buyers can add your marketplace with:
   /plugin marketplace add https://store.skillstack.sh/s/<org>/marketplace.json
 
+Your storefront URL is also saved in your skillstack.json so you can always find it there.
+
 How updates work:
 - Develop normally — commit and push as usual
 - When you're ready to release an update, bump the `version` in your marketplace.json and push. SkillStack automatically detects the new version and delivers it to your buyers.
@@ -424,4 +433,7 @@ How updates work:
 - Your storefront at store.skillstack.sh always reflects the latest registered version
 - To connect another plugin later: run `/publish` again
 - If something's not working: run `/verify` for diagnostics
+
+Creator dashboard:
+  Sign in at https://skillstack.sh/dashboard to see install analytics, active buyers, and per-plugin stats. You can track how your plugins are performing and manage your account settings there.
 ```

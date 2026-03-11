@@ -4,6 +4,12 @@ All notable changes to the SkillStack Creator Plugin are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Versioning follows [Semantic Versioning](https://semver.org/).
 
+## [0.5.2] - 2026-03-11
+
+### Added
+- `/publish` now saves the storefront URL in `skillstack.json` so creators can always find it in their repo
+- Summary mentions the creator dashboard at `skillstack.sh/dashboard` for install analytics and buyer stats
+
 ## [0.5.1] - 2026-03-11
 
 ### Changed
