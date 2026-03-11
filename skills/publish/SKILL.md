@@ -384,20 +384,33 @@ Ask the creator to confirm. Offer these options:
 
 After the creator confirms installation, proceed to Step 7.
 
-### Step 7: Create storefront repo
+### Step 7: Create or update storefront repo
 
 The storefront is a separate PUBLIC repo that buyers use to discover plugins. It contains only npm pointers — no source code, no pricing config.
 
 1. Derive the GitHub org from `git remote get-url origin` (extract the org/user from the URL).
 
-2. Ask the creator what they want to name their storefront repo (suggest `<org>-skillstack-storefront`).
+2. **Check if a storefront already exists.** If `.skillstack-creator.json` has a `storefront_repo` field, try to fetch the storefront's marketplace.json:
 
-3. Create the repo (remote only — no local clone):
+```bash
+gh api repos/<storefront_repo>/contents/.claude-plugin/marketplace.json --jq '.content' | base64 -d
+```
+
+**If the fetch succeeds → go to Step 7b (update existing storefront).**
+**If the fetch fails (404 or no config) → continue with Step 7a (create new storefront).**
+
+---
+
+#### Step 7a: Create new storefront
+
+3. Ask the creator what they want to name their storefront repo (suggest `<org>-skillstack-storefront`).
+
+4. Create the repo (remote only — no local clone):
 ```bash
 gh repo create <org>/<storefront-name> --public --description "SkillStack plugins by <owner>"
 ```
 
-4. Generate the storefront `marketplace.json` in `.claude-plugin/marketplace.json`:
+5. Generate the storefront `marketplace.json` with entries for ALL distributed plugins:
 ```json
 {
   "name": "<storefront-name>",
@@ -419,6 +432,95 @@ gh repo create <org>/<storefront-name> --public --description "SkillStack plugin
 }
 ```
 
+6. Generate a buyer-facing `README.md` (see README template and rules below).
+
+7. Commit both files directly to the remote repo via `gh api`:
+
+```bash
+# Commit marketplace.json
+echo '<marketplace-json-content>' | base64 | tr -d '\n' > /tmp/ss-marketplace-b64.txt
+gh api repos/<org>/<storefront-name>/contents/.claude-plugin/marketplace.json \
+  -X PUT \
+  -f message="init: add SkillStack storefront" \
+  -f content="$(cat /tmp/ss-marketplace-b64.txt)"
+
+# Commit README.md
+echo '<readme-content>' | base64 | tr -d '\n' > /tmp/ss-readme-b64.txt
+gh api repos/<org>/<storefront-name>/contents/README.md \
+  -X PUT \
+  -f message="docs: add buyer README" \
+  -f content="$(cat /tmp/ss-readme-b64.txt)"
+
+# Clean up temp files
+rm -f /tmp/ss-marketplace-b64.txt /tmp/ss-readme-b64.txt
+```
+
+**Important:** No local directory is created. The storefront exists only on GitHub. Use temp files for the base64 content to avoid shell escaping issues with complex JSON/markdown.
+
+**Then skip to Step 8.**
+
+---
+
+#### Step 7b: Update existing storefront
+
+The storefront already exists. Add the new plugin entries and update the README.
+
+1. Fetch the current storefront marketplace.json with its SHA (needed for updates):
+
+```bash
+RESPONSE=$(gh api repos/<storefront_repo>/contents/.claude-plugin/marketplace.json)
+CURRENT_CONTENT=$(echo "$RESPONSE" | jq -r '.content' | base64 -d)
+SHA=$(echo "$RESPONSE" | jq -r '.sha')
+```
+
+2. Parse `CURRENT_CONTENT` as JSON. For each **new** plugin being added to SkillStack in this session, append an entry to the `plugins` array:
+
+```json
+{
+  "name": "<new-plugin-name>",
+  "description": "<description>",
+  "source": {
+    "source": "npm",
+    "package": "@skillstack/<org>-<new-plugin-name>",
+    "registry": "https://mcp.skillstack.sh"
+  }
+}
+```
+
+Do NOT modify existing plugin entries — the webhook auto-sync handles version updates.
+
+3. Also apply any storefront health check fixes from Step 1b (redundant entries, format migrations).
+
+4. Commit the updated marketplace.json:
+
+```bash
+echo '<updated-json>' | base64 | tr -d '\n' > /tmp/ss-marketplace-b64.txt
+gh api repos/<storefront_repo>/contents/.claude-plugin/marketplace.json \
+  -X PUT \
+  -f message="feat: add <new-plugin-name> to storefront" \
+  -f content="$(cat /tmp/ss-marketplace-b64.txt)" \
+  -f sha="$SHA"
+rm -f /tmp/ss-marketplace-b64.txt
+```
+
+5. Update the README to include the new plugin in the plugin table. Fetch current README with SHA and commit the update:
+
+```bash
+README_RESPONSE=$(gh api repos/<storefront_repo>/contents/README.md)
+README_SHA=$(echo "$README_RESPONSE" | jq -r '.sha')
+echo '<updated-readme>' | base64 | tr -d '\n' > /tmp/ss-readme-b64.txt
+gh api repos/<storefront_repo>/contents/README.md \
+  -X PUT \
+  -f message="docs: add <new-plugin-name> to README" \
+  -f content="$(cat /tmp/ss-readme-b64.txt)" \
+  -f sha="$README_SHA"
+rm -f /tmp/ss-readme-b64.txt
+```
+
+---
+
+#### Storefront format rules (apply to both 7a and 7b)
+
 **NOTE:** Do NOT include the SkillStack buyer plugin in the storefront. Buyers install SkillStack once as a standalone marketplace (`/plugin marketplace add https://github.com/SkillStacks/skillstack.git`) before adding any creator storefronts. The storefront should only contain the creator's own plugins.
 
 Only include plugins the creator selected for SkillStack distribution in Step 2.
@@ -427,11 +529,9 @@ Only include plugins the creator selected for SkillStack distribution in Step 2.
 - `plugins` MUST be an **array** (not an object)
 - `source` MUST be a **nested object** with `"source": "npm"` and `"package"` fields
 - The package name uses the namespaced slug: `@skillstack/<org>-<plugin-name>`
-- Do NOT include `version`, `polar_*`, `license_model`, `author`, `category`, or `tags` in the storefront — those belong only in the source repo
+- Do NOT include `version`, `polar_*`, `license_model`, `author`, `category`, or `tags` in the storefront — those belong only in the source repo. The webhook auto-syncs `version` and `registry` on version bumps.
 
-4b. Generate a buyer-facing `README.md` in the storefront root. This README helps buyers understand what the storefront offers and how to install plugins.
-
-**Template:**
+#### README template (apply to both 7a and 7b)
 
 ~~~markdown
 # <Storefront Display Name>
@@ -490,29 +590,6 @@ This is a [SkillStack](https://skillstack.sh) storefront — a distribution chan
 - **Plugin list**: Only include plugins the creator selected for SkillStack distribution (same ones in the storefront marketplace.json), NOT the SkillStack buyer plugin itself
 - **creator_contact**: Pull from the source marketplace.json. If not set, default to "open a ticket on this repo"
 - **Keep it short**: Buyers want to install, not read an essay
-
-5. Commit files directly to the remote repo via the GitHub Contents API. Generate the full file content, base64-encode it, and push via `gh api`:
-
-```bash
-# Commit marketplace.json
-echo '<marketplace-json-content>' | base64 | tr -d '\n' > /tmp/ss-marketplace-b64.txt
-gh api repos/<org>/<storefront-name>/contents/.claude-plugin/marketplace.json \
-  -X PUT \
-  -f message="init: add SkillStack storefront" \
-  -f content="$(cat /tmp/ss-marketplace-b64.txt)"
-
-# Commit README.md
-echo '<readme-content>' | base64 | tr -d '\n' > /tmp/ss-readme-b64.txt
-gh api repos/<org>/<storefront-name>/contents/README.md \
-  -X PUT \
-  -f message="docs: add buyer README" \
-  -f content="$(cat /tmp/ss-readme-b64.txt)"
-
-# Clean up temp files
-rm -f /tmp/ss-marketplace-b64.txt /tmp/ss-readme-b64.txt
-```
-
-**Important:** No local directory is created. The storefront exists only on GitHub. Use temp files for the base64 content to avoid shell escaping issues with complex JSON/markdown.
 
 ### Step 8: Write creator config
 
