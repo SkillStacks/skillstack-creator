@@ -18,6 +18,10 @@ Runs after `git commit` and `git push` in SkillStack repos (detected via `.skill
 - **On commit**: Warns if `marketplace.json` and `plugin.json` versions are out of sync (marketplace.json is the source of truth for SkillStack distribution)
 - **On push**: Confirms the SkillStack webhook will sync version changes
 
+## Prerequisites
+
+- [GitHub CLI (`gh`)](https://cli.github.com/) installed and authenticated (`gh auth login`)
+
 ## Installation
 
 Add the marketplace and install the plugin from within Claude Code:
