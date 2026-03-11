@@ -552,8 +552,8 @@ Buyers can add your marketplace with:
 
 How it works from here:
 - Just develop normally — commit and push as usual
-- When you bump the version in marketplace.json, SkillStack automatically picks it up
-- The plugin will remind you if you forget to bump the version after changing plugin code
+- When you bump the version in marketplace.json, SkillStack automatically picks it up and syncs it to your storefront
+- Keep plugin.json version in sync with marketplace.json — the hook will remind you if they diverge
 - To connect another plugin later: run "publish" again
 - If something's not working: run the "verify" skill
 ```

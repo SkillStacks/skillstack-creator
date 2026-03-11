@@ -30,6 +30,7 @@ For each plugin in the source manifest, check against the `skillstack_list` resu
 |-------|------|------|
 | Plugin registered? | Slug found in list | Not found |
 | Version match? | Versions are equal | Source has newer version |
+| plugin.json in sync? | Matches marketplace.json | Version mismatch |
 | License model correct? | Models match | Mismatch |
 | License options synced? | Options match (keys and identifiers) | Missing or mismatched |
 
@@ -48,6 +49,17 @@ For each plugin in the source manifest, check against the `skillstack_list` resu
     Add "creator_contact": "your-email@example.com" to your plugin entry in marketplace.json.
   ```
   This is a warning, not an error — the plugin works without it.
+
+**plugin.json version sync check:** For each plugin with a local `source` path, check if `<source>/.claude-plugin/plugin.json` exists. If it does, compare its `version` field against the `marketplace.json` version for that plugin:
+
+- If they match: `plugin.json version: v1.10.0 (in sync)`
+- If they differ:
+  ```
+  plugin.json version: MISMATCH — marketplace.json has v1.10.0, plugin.json has v1.9.0
+    marketplace.json is the source of truth for SkillStack distribution.
+    Update plugin.json to match.
+  ```
+- If plugin.json doesn't exist: skip silently (not all plugins have one)
 
 ### Step 3b: Validate free_skills
 

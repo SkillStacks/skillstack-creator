@@ -69,6 +69,41 @@ if echo "$COMMAND" | grep -q 'git commit'; then
 EOF
     exit 0
   fi
+
+  # Check plugin.json versions match marketplace.json versions
+  # marketplace.json is the source of truth for SkillStack — plugin.json should stay in sync
+  MISMATCHED=""
+  PLUGIN_COUNT=$(jq -r '.plugins | length' "$MARKETPLACE" 2>/dev/null || echo "0")
+  for i in $(seq 0 $(( PLUGIN_COUNT - 1 ))); do
+    PLUGIN_NAME=$(jq -r ".plugins[$i].name // empty" "$MARKETPLACE" 2>/dev/null)
+    MARKETPLACE_VERSION=$(jq -r ".plugins[$i].version // empty" "$MARKETPLACE" 2>/dev/null)
+    SOURCE_PATH=$(jq -r ".plugins[$i].source // empty" "$MARKETPLACE" 2>/dev/null)
+
+    # Skip plugins without a local source path (e.g., npm-only entries)
+    if [ -z "$SOURCE_PATH" ] || echo "$SOURCE_PATH" | grep -q '"source"'; then
+      continue
+    fi
+
+    # Resolve plugin.json path from source
+    PLUGIN_JSON="${SOURCE_PATH#./}/.claude-plugin/plugin.json"
+    if [ ! -f "$PLUGIN_JSON" ]; then
+      continue
+    fi
+
+    PLUGIN_JSON_VERSION=$(jq -r '.version // empty' "$PLUGIN_JSON" 2>/dev/null)
+    if [ -n "$MARKETPLACE_VERSION" ] && [ -n "$PLUGIN_JSON_VERSION" ] && [ "$MARKETPLACE_VERSION" != "$PLUGIN_JSON_VERSION" ]; then
+      MISMATCHED="${MISMATCHED}  - ${PLUGIN_NAME}: marketplace.json has v${MARKETPLACE_VERSION}, plugin.json has v${PLUGIN_JSON_VERSION}\n"
+    fi
+  done
+
+  if [ -n "$MISMATCHED" ]; then
+    # Escape for JSON
+    MISMATCHED_MSG=$(echo -e "$MISMATCHED" | sed 's/"/\\"/g' | tr '\n' ' ')
+    cat <<EOF
+{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"[SkillStack] Version mismatch between marketplace.json and plugin.json: ${MISMATCHED_MSG}marketplace.json is the source of truth for SkillStack distribution. Update plugin.json to match so buyers see consistent version info."}}
+EOF
+    exit 0
+  fi
 fi
 
 exit 0
