@@ -1,0 +1,8 @@
+{
+  "name": "skillstack-creator",
+  "version": "0.6.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  }
+}

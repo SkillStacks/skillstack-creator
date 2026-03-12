@@ -1,0 +1,74 @@
+{
+  "skill_name": "verify",
+  "skill_type": "task",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I just published my plugin to SkillStack and want to verify everything is set up correctly. My plugin is 'analytics-pro' at version 2.0.0 with a Polar subscription license.",
+      "expected_output": "Skill reads config files, queries skillstack_list, runs all 7 checks, verifies storefront, and shows a comprehensive status report",
+      "expectations": [
+        "Reads .claude-plugin/marketplace.json for expected state",
+        "Reads .claude-plugin/skillstack.json for SkillStack config",
+        "Calls skillstack_list MCP tool to get registered plugins",
+        "Checks plugin registration (slug found in list)",
+        "Checks version match (source vs SkillStack)",
+        "Checks license model correctness",
+        "Checks license options sync",
+        "Checks creator_contact status",
+        "Verifies storefront at store.skillstack.sh",
+        "Presents a formatted status report with all check results"
+      ],
+      "tags": ["happy-path", "full-verification"]
+    },
+    {
+      "id": 2,
+      "prompt": "Run /verify on my plugin repo. I think the webhook didn't fire — my local version is 2.1.0 but SkillStack might still show 2.0.0.",
+      "expected_output": "Skill detects version mismatch and provides specific troubleshooting guidance",
+      "expectations": [
+        "Detects version mismatch between source and SkillStack",
+        "Reports the specific version numbers (source vs SkillStack)",
+        "Suggests pushing a commit to re-trigger the webhook",
+        "Provides the empty commit command as a fix option"
+      ],
+      "tags": ["version-mismatch", "troubleshooting"]
+    },
+    {
+      "id": 3,
+      "prompt": "Verify my plugin. I have a freemium plugin with free_skills set to ['write-note', 'hok', 'title'] but the actual skill directories are write-note, hook, and title.",
+      "expected_output": "Skill validates free_skills against actual directories and catches the typo",
+      "expectations": [
+        "Reads the skills/ directory to get actual skill directory names",
+        "Compares each free_skills entry against actual directories",
+        "Detects that 'hok' does not match any skill directory",
+        "Suggests 'hook' as the closest match for 'hok'",
+        "Reports which entries are valid and which are invalid"
+      ],
+      "tags": ["free-skills-validation", "edge-case"]
+    },
+    {
+      "id": 4,
+      "prompt": "Run /verify. I don't have a skillstack.json file yet — I only have marketplace.json.",
+      "expected_output": "Skill detects missing skillstack.json and directs to /publish",
+      "expectations": [
+        "Reads marketplace.json successfully",
+        "Detects that skillstack.json does not exist",
+        "Directs the creator to run /publish first to connect plugins to SkillStack",
+        "Does NOT attempt to query SkillStack or run checks without skillstack.json"
+      ],
+      "tags": ["missing-config", "edge-case"]
+    },
+    {
+      "id": 5,
+      "prompt": "Run /verify. My marketplace.json still has license_provider and license_config fields from the old format before the skillstack.json sidecar split.",
+      "expected_output": "Skill detects stale SkillStack fields in marketplace.json and recommends cleanup",
+      "expectations": [
+        "Scans marketplace.json for SkillStack-specific fields",
+        "Detects stale fields (license_provider, license_config, etc.)",
+        "Reports which fields need to be moved to skillstack.json",
+        "Recommends running /publish to migrate automatically",
+        "Reports field separation status clearly"
+      ],
+      "tags": ["stale-fields", "migration"]
+    }
+  ]
+}

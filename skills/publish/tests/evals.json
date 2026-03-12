@@ -1,0 +1,82 @@
+{
+  "skill_name": "publish",
+  "skill_type": "task",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I have a Claude Code plugin in a private GitHub repo with a marketplace.json already set up. I want to publish it on SkillStack as a free plugin. The marketplace.json has one plugin called 'code-helper' at version 1.0.0.",
+      "expected_output": "Skill reads marketplace.json, confirms free pricing, writes skillstack.json with storefront URL, guides through GitHub App install, commits and pushes, verifies registration",
+      "expectations": [
+        "Reads .claude-plugin/marketplace.json as the first step",
+        "Asks about pricing model (free vs paid)",
+        "For free plugins, does NOT require payment provider configuration",
+        "Derives GitHub org from git remote URL",
+        "Derives storefront URL using the marketplace name slug",
+        "Guides user to install SkillStack Distribution GitHub App",
+        "Asks for permission before running git commit and push",
+        "Calls skillstack_list MCP tool to verify registration after push",
+        "Shows a summary with storefront URL and buyer quick-start instructions"
+      ],
+      "tags": ["happy-path", "free-plugin"]
+    },
+    {
+      "id": 2,
+      "prompt": "I want to publish my plugin as a paid plugin using Polar with a subscription license model. My Polar org ID is 0c504f49-dbdd-496a-8a36-72ce2a94d97f and product ID is 11297490-6b02-4468-8968-1813b187343d. The plugin is called 'analytics-pro' at version 2.0.0.",
+      "expected_output": "Skill collects Polar credentials, validates UUID format, writes skillstack.json with license_provider and license_config, offers free tier and creator contact",
+      "expectations": [
+        "Asks which payment provider (Polar or Lemon Squeezy)",
+        "Asks about single vs multi-license type",
+        "Collects Polar org_id in UUID format",
+        "Collects Polar product_id in UUID format",
+        "Asks about License Key benefit configuration",
+        "Writes config to .claude-plugin/skillstack.json (NOT marketplace.json)",
+        "Config includes license_provider: polar and license_model: subscription",
+        "Offers optional free tier (freemium) configuration",
+        "Offers optional creator_contact configuration"
+      ],
+      "tags": ["paid-plugin", "polar", "single-license"]
+    },
+    {
+      "id": 3,
+      "prompt": "I have 3 plugins in my marketplace. Two are already on SkillStack (linear-pm as subscription, code-reviewer as lifetime). I want to reconfigure linear-pm to offer both subscription and lifetime options (multi-license).",
+      "expected_output": "Skill detects already-connected plugins, offers reconfigure option, handles multi-license flow with per-type benefit IDs",
+      "expectations": [
+        "Shows which plugins are already connected vs not connected",
+        "Offers reconfigure licensing option when any plugins are already connected",
+        "Handles multi-license flow requiring at least 2 license types",
+        "For multi-license with Polar, collects a separate benefit_id per license type",
+        "Uses license_options instead of license_model for multi-license",
+        "Does NOT include license_model when using license_options"
+      ],
+      "tags": ["reconfigure", "multi-license"]
+    },
+    {
+      "id": 4,
+      "prompt": "I want to publish my plugin with Lemon Squeezy. It should be a paid plugin with a lifetime license and a free tier. My store ID is 306756, product ID is 12345. I want to offer 3 skills for free out of 8 total.",
+      "expected_output": "Skill collects LS credentials, configures freemium with free_skills array, writes skillstack.json with complete config",
+      "expectations": [
+        "Collects Lemon Squeezy store_id",
+        "Collects Lemon Squeezy product_id",
+        "Asks about free tier after license configuration",
+        "Lists all skill directories from skills/ folder for free tier selection",
+        "Stores selected free skills in a free_skills array",
+        "Warns if all skills are selected as free",
+        "Confirms the free/premium split before proceeding"
+      ],
+      "tags": ["lemon-squeezy", "freemium"]
+    },
+    {
+      "id": 5,
+      "prompt": "My marketplace.json still has old SkillStack fields like license_provider and license_config from a prior publish. I want to publish a new plugin to SkillStack.",
+      "expected_output": "Skill detects and cleans stale SkillStack fields from marketplace.json during the publish flow",
+      "expectations": [
+        "Detects stale SkillStack fields in marketplace.json during the publish flow",
+        "Strips license_provider, license_config, license_model, and other SkillStack fields from marketplace.json",
+        "Shows the creator what fields were cleaned up",
+        "Does NOT modify non-SkillStack fields in marketplace.json",
+        "Stages both skillstack.json and marketplace.json for the git commit"
+      ],
+      "tags": ["stale-fields", "migration"]
+    }
+  ]
+}

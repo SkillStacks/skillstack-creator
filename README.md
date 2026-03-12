@@ -36,6 +36,26 @@ When prompted, select **"Install for you (user scope)"** — the first and recom
 
 Restart Claude Code, then navigate to your plugin source repo and run `/publish` to get started.
 
+## Helper Scripts
+
+Scripts in `scripts/` handle deterministic logic (file I/O, validation, JSON schema), keeping skills focused on user interaction and judgment calls.
+
+| Script | Purpose | Used by |
+|--------|---------|---------|
+| `read-plugin-state.mjs` | Reads marketplace.json, skillstack.json, plugin.json, and git remote into a unified state object | `/publish`, `/verify` |
+| `verify-config.mjs` | Runs 9 local verification checks (registration, version sync, license config, free_skills, stale fields) | `/verify` |
+| `write-skillstack-json.mjs` | Writes/merges skillstack.json with input validation (UUID format, license types, mutual exclusivity), cleans stale fields from marketplace.json | `/publish` |
+
+All scripts export testable functions and work as CLI tools (`node scripts/<name>.mjs`).
+
+## Testing
+
+```bash
+node --test tests/*.test.mjs
+```
+
+66 unit tests across 3 test files covering all script functions. Tests use temp directories with filesystem fixtures — no external dependencies.
+
 ## Documentation
 
 - [Creator Guide](https://github.com/kenneth-liao/skillstack/blob/main/docs/CREATOR-GUIDE.md)

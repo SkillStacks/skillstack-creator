@@ -4,6 +4,26 @@ All notable changes to the SkillStack Creator Plugin are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Versioning follows [Semantic Versioning](https://semver.org/).
 
+## [0.6.0] - 2026-03-12
+
+### Added
+- **Helper scripts** for robust, token-efficient skill execution:
+  - `read-plugin-state.mjs` — reads marketplace.json, skillstack.json, plugin.json, and git remote into a unified state object (used by `/publish` and `/verify`)
+  - `verify-config.mjs` — runs all 9 local verification checks programmatically (registration, version, plugin.json sync, license model, license options, creator contact, free skills, stale fields, missing version)
+  - `write-skillstack-json.mjs` — writes/merges skillstack.json with input validation (UUID format, license types, mutual exclusivity) and cleans stale fields from marketplace.json
+- **68 unit tests** across 3 test files covering all script functions
+- `.gitignore` and `package.json` with test runner config
+
+### Fixed
+- `read-plugin-state.mjs` now populates `skillDirs` — fixes `/verify` free_skills typo detection which needs actual skill directory names to validate against
+
+### Changed
+- `/publish` refactored to delegate file I/O to scripts — **58% token reduction** (437 → 185 lines)
+- `/verify` refactored to delegate all local checks to scripts — **55% token reduction** (216 → 97 lines)
+- `/stats` description updated to follow CSO best practices
+- All skill descriptions now start with "Use when..." per writing-skills standards
+- Inline JSON examples removed from `/publish` — script handles structure and validation
+
 ## [0.5.2] - 2026-03-11
 
 ### Added

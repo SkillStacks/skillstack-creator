@@ -1,13 +1,11 @@
 ---
 name: stats
-description: View analytics for your SkillStack plugins — installs, active buyers, and free/paid split.
+description: Use when a creator wants to view install analytics, active buyers, or free/paid split for their SkillStack plugins.
 ---
 
 ## View Creator Analytics
 
-Shows aggregate analytics for your published SkillStack plugins using the `skillstack_creator_stats` MCP tool.
-
-Authentication is handled automatically by your MCP connection to SkillStack. If you haven't signed in yet, you'll be prompted to authenticate via your browser.
+Shows aggregate analytics for published SkillStack plugins using the `skillstack_creator_stats` MCP tool. Authentication is handled automatically by the MCP connection.
 
 ### Step 1: Ask about filters
 
@@ -24,7 +22,7 @@ Ask the creator:
 >
 > "Want to filter to a specific plugin, or see all?"
 
-If they want a specific plugin, ask for the slug (or show the list from `.skillstack-creator.json` / `skillstack_list`).
+If they want a specific plugin, ask for the slug (or show the list from `skillstack_list`).
 
 ### Step 2: Fetch analytics
 
@@ -33,33 +31,31 @@ Call `skillstack_creator_stats` with:
 - `plugin_slug`: the specific plugin slug (omit for all plugins)
 
 If the response contains `"error": "authentication_required"`, inform the creator:
-> "You need to sign in to SkillStack to view analytics. The authentication prompt should appear in your browser automatically. If it doesn't, visit skillstack.sh to create an account."
+> "You need to sign in to SkillStack. The authentication prompt should appear in your browser automatically. If it doesn't, visit skillstack.sh to create an account."
 
 ### Step 3: Display results
 
-**Metric definitions (use these EXACTLY when rendering):**
-- **Active Buyers** = `active_buyers` — unique people who activated a license (from `user_tokens`). All paid by definition.
-- **Total Installs** = `total_installs` — number of plugin downloads (counts events, not people)
+**Metric definitions (use these EXACTLY):**
+- **Active Buyers** = `active_buyers` — unique people who activated a license (all paid by definition)
+- **Total Installs** = `total_installs` — number of downloads (counts events, not people)
 - **Paid** = `paid_installs` — downloads by licensed users
 - **Free** = `free_installs` — downloads by free-tier users
 
-Format the response as a readable dashboard:
+**Important:** Use `active_buyers` for the "Active Buyers" metric. Do NOT use `unique_buyers` or `activations`.
 
-**If single plugin:**
+**Single plugin format:**
 ```
 Analytics for <plugin-name> (<period>)
 ======================================
-
   Active buyers:  <active_buyers>
   Installs:       <total_installs> (<paid_installs> paid, <free_installs> free)
   Update checks:  <update_checks>
 ```
 
-**If multiple plugins:**
+**Multiple plugins format:**
 ```
 Analytics for your plugins (<period>)
 =====================================
-
 Summary:
   Active buyers:   <active_buyers>
   Total installs:  <total_installs> (<paid_installs> paid, <free_installs> free)
@@ -67,19 +63,12 @@ Summary:
 
 By plugin:
   <plugin-1-name>
-    Active buyers: <active_buyers> | Installs: <total> (<paid> paid, <free> free)
-
-  <plugin-2-name>
-    Active buyers: <active_buyers> | Installs: <total> (<paid> paid, <free> free)
+    Active buyers: <n> | Installs: <n> (<n> paid, <n> free)
 ```
-
-**Important:** Use `active_buyers` for the "Active Buyers" metric. Do NOT use `unique_buyers` or `activations` for this — those are different metrics kept for backward compatibility.
 
 ### Step 4: Offer next steps
 
 After showing results:
-
 > "Want to see a different time period, filter to a specific plugin, or anything else?"
 
-If the creator has no plugins registered (empty results):
-> "No analytics data found. Make sure you've published at least one plugin with `/publish` and that buyers have started installing."
+If no data: "No analytics data found. Make sure you've published at least one plugin with `/publish` and that buyers have started installing."

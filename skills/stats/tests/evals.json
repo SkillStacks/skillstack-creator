@@ -1,0 +1,43 @@
+{
+  "skill_name": "stats",
+  "skill_type": "task",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Show me analytics for all my SkillStack plugins over the last 30 days.",
+      "expected_output": "Skill asks about filters, calls skillstack_creator_stats, and displays a formatted dashboard with correct metric names",
+      "expectations": [
+        "Asks about time period filter (7d, 30d, 90d, all)",
+        "Asks about plugin filter (specific or all)",
+        "Calls skillstack_creator_stats MCP tool with period and optional plugin_slug",
+        "Uses 'Active Buyers' label (from active_buyers field, NOT unique_buyers)",
+        "Uses 'Total Installs' with paid/free breakdown",
+        "Displays results in a formatted dashboard layout"
+      ],
+      "tags": ["happy-path"]
+    },
+    {
+      "id": 2,
+      "prompt": "Show me stats for just my 'analytics-pro' plugin for the last 90 days.",
+      "expected_output": "Skill filters to specific plugin and time period, shows single-plugin format",
+      "expectations": [
+        "Passes specific plugin_slug to skillstack_creator_stats",
+        "Uses the 90d period filter",
+        "Shows single-plugin dashboard format (not multi-plugin summary)",
+        "Includes active_buyers, total_installs, paid/free split, update_checks"
+      ],
+      "tags": ["single-plugin", "filtered"]
+    },
+    {
+      "id": 3,
+      "prompt": "Show me my plugin stats. I haven't published any plugins yet.",
+      "expected_output": "Skill handles empty results gracefully with guidance to publish first",
+      "expectations": [
+        "Handles empty or no-data response from skillstack_creator_stats",
+        "Informs creator that no analytics data was found",
+        "Suggests publishing a plugin with /publish first"
+      ],
+      "tags": ["no-data", "edge-case"]
+    }
+  ]
+}
