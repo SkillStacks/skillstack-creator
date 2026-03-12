@@ -78,7 +78,7 @@ analytics-pro (skillstacks-analytics-pro)
   License: subscription (correct)
   Creator contact: support@example.com (synced)
 
-Storefront: https://store.skillstack.sh/s/.../marketplace.json
+Storefront: https://store.skillstack.sh/s/{owner}/{marketplace_slug}/marketplace.json
   All 1 distributed plugins listed with correct versions
 
 Field separation: marketplace.json is clean

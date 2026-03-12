@@ -78,6 +78,9 @@ Ask: **Single license type, or multiple?**
 **Lemon Squeezy multi-license:**
 - **Product ID** (required integer) per license type
 
+#### License key binding (v0.12.0+)
+> **Each license key can only be activated for one plugin.** If a creator distributes multiple plugins, buyers need separate license keys for each. For Polar creators with multiple products in one org, each product's license keys bind to their respective plugin on first activation.
+
 #### 4d: Free tier (optional)
 Ask if they want some skills free (freemium). If yes:
 1. List all skill directories from `skills/`
@@ -132,7 +135,7 @@ If validation fails, show errors and ask the creator to correct. If fields were 
 
 ### Step 6: Install GitHub App
 
-> Install the **SkillStack Distribution** GitHub App on this repo. This gives SkillStack read access to fetch your plugin code and delivers it to buyers.
+> Install the **SkillStack Distribution** GitHub App on this repo. This gives SkillStack **read-only** access to fetch your plugin code and delivers it to buyers.
 >
 > Install link: **https://github.com/apps/skillstack-distribution**
 

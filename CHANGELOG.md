@@ -23,6 +23,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versioning follo
 - `/stats` description updated to follow CSO best practices
 - All skill descriptions now start with "Use when..." per writing-skills standards
 - Inline JSON examples removed from `/publish` — script handles structure and validation
+- `/publish` now documents license key plugin binding (v0.12.0) — each key binds to one plugin on first activation
+- `/publish` GitHub App step clarifies **read-only** access (write permission removed in worker v0.10.0)
+- `/verify` storefront URL now shows full `{owner}/{marketplace_slug}` pattern instead of placeholder
+- `README.md` now documents the two-file model (`marketplace.json` for Claude Code metadata, `skillstack.json` for SkillStack config)
+- Hook description updated to mention `skillstack.json` config detection
 
 ## [0.5.2] - 2026-03-11
 

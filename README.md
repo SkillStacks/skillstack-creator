@@ -6,7 +6,7 @@ Creator-facing Claude Code plugin for publishing and managing plugins on SkillSt
 
 | Skill | Purpose |
 |-------|---------|
-| `/publish` | Guided setup: connects existing plugins to SkillStack by writing distribution config to `.claude-plugin/skillstack.json`, configures pricing and payment provider, installs GitHub App, displays auto-generated storefront URL, verifies registration. Run again to add more plugins or reconfigure licensing. |
+| `/publish` | Guided setup: connects existing plugins to SkillStack by writing distribution config to `.claude-plugin/skillstack.json`, configures pricing and payment provider, installs GitHub App, displays auto-generated storefront URL, verifies registration. Run again to add more plugins or reconfigure licensing. Uses a two-file model: `marketplace.json` holds standard Claude Code plugin metadata (names, versions, sources) with no SkillStack-specific fields, while `skillstack.json` holds SkillStack distribution config (licensing, freemium, creator contact) and is only needed for paid plugins. |
 | `/verify` | Diagnostic: checks plugin registration, version sync, license config (from `skillstack.json`), free_skills, creator contact, and storefront availability at `store.skillstack.sh` against SkillStack, with troubleshooting guidance. |
 | `/stats` | Analytics: view active buyers, installs, and free/paid split for your published plugins. Filterable by time period and plugin. |
 

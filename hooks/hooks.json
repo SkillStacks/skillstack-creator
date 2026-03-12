@@ -1,5 +1,5 @@
 {
-  "description": "SkillStack creator checks — reminds about version bumps after git commits",
+  "description": "SkillStack creator checks — reminds about version bumps and skillstack.json config after git commits",
   "hooks": {
     "PostToolUse": [
       {
