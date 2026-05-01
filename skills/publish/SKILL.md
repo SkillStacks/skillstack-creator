@@ -69,14 +69,14 @@ Ask: **Single license type, or multiple?**
 - **Benefit ID** (UUID, `ben_*` prefix) per license type — Products → Benefits
 
 **Lemon Squeezy (all configs):**
-- **Store ID** (integer) — Settings → General
+- **Store ID** (numeric, stored as string in JSON — e.g. `"306756"`) — Settings → General
 - Confirm license key generation enabled
 
 **Lemon Squeezy single:**
-- **Product ID** (optional integer) — Products → URL
+- **Product ID** (optional, numeric, stored as string) — Products → URL
 
 **Lemon Squeezy multi-license:**
-- **Product ID** (required integer) per license type
+- **Product ID** (required, numeric, stored as string) per license type
 
 #### License key binding (v0.12.0+)
 > **Each license key can only be activated for one plugin.** If a creator distributes multiple plugins, buyers need separate license keys for each. For Polar creators with multiple products in one org, each product's license keys bind to their respective plugin on first activation.

@@ -50,6 +50,21 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 const BEN_UUID_REGEX = /^ben_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
+ * Coerce all values in a license_config-shaped object to strings.
+ * Numeric provider IDs (Lemon Squeezy store_id, product_id) round-trip through
+ * JSON as integers if not quoted, and the worker's strict-equality checks
+ * against License-API responses fail when types don't match.
+ */
+function stringifyConfigValues(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) {
+    out[k] = v === null || v === undefined ? v : String(v);
+  }
+  return out;
+}
+
+/**
  * Validate the config for a single plugin.
  * Returns an array of error strings (empty = valid).
  */
@@ -239,12 +254,17 @@ export function writeSkillstackJson(repoDir, config) {
     // Build clean plugin entry
     const entry = {
       license_provider: pluginConfig.license_provider,
-      license_config: pluginConfig.license_config,
+      license_config: stringifyConfigValues(pluginConfig.license_config),
     };
 
     // license_model OR license_options (mutually exclusive, validated above)
     if (pluginConfig.license_options) {
-      entry.license_options = pluginConfig.license_options;
+      // Coerce per-option values too (e.g. product_id from LS is numeric).
+      const coerced = {};
+      for (const [type, opts] of Object.entries(pluginConfig.license_options)) {
+        coerced[type] = stringifyConfigValues(opts);
+      }
+      entry.license_options = coerced;
       // Explicitly do NOT set license_model
     } else if (pluginConfig.license_model) {
       entry.license_model = pluginConfig.license_model;

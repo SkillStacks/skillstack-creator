@@ -4,6 +4,12 @@ All notable changes to the SkillStack Creator Plugin are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Versioning follows [Semantic Versioning](https://semver.org/).
 
+## [0.6.1] - 2026-05-01
+
+### Fixed
+- `write-skillstack-json.mjs` now coerces all `license_config` and `license_options[*]` values to strings before writing. Numeric provider IDs (e.g. Lemon Squeezy `store_id`, `product_id`) round-tripped through JSON as integers if not quoted, breaking strict-equality comparisons against License-API responses on the worker. Pairs with worker fixes in v0.12.1 / v0.12.2.
+- `/publish` skill wording for Lemon Squeezy IDs clarifies they are stored as strings in JSON (previously labeled "(integer)").
+
 ## [0.6.0] - 2026-03-12
 
 ### Added
