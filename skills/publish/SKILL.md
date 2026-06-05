@@ -151,9 +151,13 @@ Output: `{ valid, plugins: [{ name, valid, errors: [{ field, message }] }], summ
   names the offending field and the exact fix. Apply the fix by returning to Step 4
   (re-collect the affected IDs) and re-running Step 5, then re-validate. Do not push
   until validation passes.
-- **`unavailable: true`** (exit 3) — the endpoint was unreachable; validation could
-  not run. Note this to the creator and proceed — the webhook re-runs the identical
-  check at ingestion, so it remains the backstop.
+- **`endpointError: true`** (exit 1) — the endpoint was reachable but returned an
+  error (e.g. a 4xx/5xx), or a local read failed. Validation did **not** complete,
+  so this is **not** the backstop case — surface the `error` message and do not push
+  until it's resolved.
+- **`unavailable: true`** (exit 3) — the endpoint was genuinely unreachable (network
+  failure); validation could not run. Note this to the creator and proceed — the
+  webhook re-runs the identical check at ingestion, so it remains the backstop.
 
 ### Step 6: Install GitHub App
 
