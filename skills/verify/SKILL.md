@@ -46,6 +46,23 @@ The script runs all local checks:
 - Stale field detection (SkillStack fields in marketplace.json)
 - Missing version check (critical — plugin invisible to buyers)
 
+### Step 3.5: Validate binding config against the worker
+
+Run the same canonicalization the server applies at ingestion, so a binding
+problem that would block activation is caught here rather than after a push:
+
+```bash
+node <this-skill-dir>/../../scripts/validate-config.mjs --repo-dir <repo-root>
+```
+
+Output: `{ valid, plugins: [{ name, valid, errors: [{ field, message }] }], summary }`.
+Report any `valid: false` plugin's errors alongside the Step 3 checks — each names
+the offending field and the exact fix. If the result is `endpointError: true` (exit
+1), the endpoint was reachable but errored (or a local read failed) — surface the
+`error` and flag that validation did not run. If the result is `unavailable: true`
+(exit 3), the endpoint was genuinely unreachable — note that the binding check could
+not run and continue (the webhook is the backstop).
+
 ### Step 4: Verify storefront
 
 Fetch the storefront URL from the state output:
