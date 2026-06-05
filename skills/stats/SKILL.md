@@ -30,8 +30,11 @@ Call `skillstack_creator_stats` with:
 - `period`: the selected period (default `"30d"`)
 - `plugin_slug`: the specific plugin slug (omit for all plugins)
 
-If the response contains `"error": "authentication_required"`, inform the creator:
-> "You need to sign in to SkillStack. The authentication prompt should appear in your browser automatically. If it doesn't, visit skillstack.sh to create an account."
+The response is structured — branch on it:
+- **`status` / `error` is `authentication_required`**: inform the creator —
+  > "You need to sign in to SkillStack. The authentication prompt should appear in your browser automatically. If it doesn't, visit skillstack.sh to create an account."
+- **No plugins / empty data**: tell the creator no analytics were found yet — make sure they've published (`/publish`) and that buyers have started installing.
+- **Any other error, or the call itself fails/times out**: show the `message` (it's written to be actionable) and suggest retrying; if it persists, **support@skillstack.sh**. Don't present an errored call as "0 installs".
 
 ### Step 3: Display results
 

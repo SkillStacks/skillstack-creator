@@ -4,6 +4,38 @@ All notable changes to the SkillStack Creator Plugin are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Versioning follows [Semantic Versioning](https://semver.org/).
 
+## [0.8.0] - 2026-06-05
+
+### Fixed — canonical-home binding (the single-license source bug)
+
+- **`/publish` Step 4c** now collects the correct **binding id** for single-license
+  plugins: **`benefit_id`** for Polar (it binds on the benefit, not the product —
+  collecting `product_id` produced an unresolvable config the worker rejects) and a
+  **required `product_id`** for paid Lemon Squeezy. Step 5 documents that the
+  single-license binding id goes in `license_config` (the worker relocates it into
+  the license tier) and the multi-license id goes per tier in `license_options`.
+
+### Added — Claude-driven migration + downgrade safety (issue #2)
+
+- **`/verify` Step 3.6 — migrate to canonical config.** Uses the worker's
+  `/validate` response (`errors` + the new `canonical` field): writes the corrected
+  config verbatim for valid/drifted plugins, and for an invalid one asks the creator
+  only for the value it genuinely needs (e.g. a Polar `benefit_id`) with where to
+  find it, then re-validates, re-publishes, and confirms. Idempotent + buyer-safe
+  (a paid plugin can never be migrated to free); buyers do nothing.
+- **Silent-downgrade gate.** `/publish` Step 8 and `/verify` Step 3.6 now read
+  `skillstack_creator_stats` after a push and check each plugin's
+  `last_sync_warning` (must be null) and live `license_model` — so a push that
+  skipped/downgraded a plugin is surfaced instead of reported as success.
+- **Broader MCP-failure handling** in `/stats` (empty data, non-auth errors, call
+  failure) and `/publish` Step 8 (`skillstack_list` failure).
+
+### Fixed — version drift
+
+- `marketplace.json` plugin version (`0.6.0`) was out of sync with `plugin.json`
+  (`0.7.0`); both are now a single value (`0.8.0`). A wrong/stale marketplace
+  version 404s the plugin to buyers — exactly the class of bug `/verify` guards.
+
 ## [0.7.0] - 2026-06-04
 
 ### Added

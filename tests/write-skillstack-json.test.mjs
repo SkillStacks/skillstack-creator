@@ -429,6 +429,88 @@ describe('writeSkillstackJson — stale field cleanup', () => {
   });
 });
 
+describe('writeSkillstackJson — canonical-config preservation', () => {
+  let repoDir;
+  afterEach(() => { if (repoDir) cleanup(repoDir); });
+
+  it('preserves existing free_skills/creator_contact when incoming config (canonical) omits them', () => {
+    repoDir = createRepoFixture({
+      existingSkillstack: {
+        storefront: 'https://store.skillstack.sh/test',
+        plugins: {
+          'analytics-pro': {
+            license_provider: 'polar',
+            license_config: { org_id: TEST_UUID_1 },
+            license_model: 'subscription',
+            free_skills: ['write-note', 'hook'],
+            creator_contact: 'support@example.com',
+          },
+        },
+      },
+    });
+
+    // Worker `canonical` config: license fields only, no free_skills/creator_contact.
+    const result = writeSkillstackJson(repoDir, {
+      storefront: 'https://store.skillstack.sh/test',
+      plugins: {
+        'analytics-pro': {
+          license_provider: 'polar',
+          license_config: { org_id: TEST_UUID_1, benefit_id: TEST_BEN_1 },
+          license_model: 'subscription',
+        },
+      },
+    });
+
+    assert.equal(result.success, true);
+
+    const written = readSkillstackJson(repoDir);
+    const entry = written.plugins['analytics-pro'];
+    // Non-license fields preserved from existing entry
+    assert.deepEqual(entry.free_skills, ['write-note', 'hook'], 'free_skills should be preserved');
+    assert.equal(entry.creator_contact, 'support@example.com', 'creator_contact should be preserved');
+    // License fields still come from incoming canonical config
+    assert.equal(entry.license_config.benefit_id, TEST_BEN_1, 'license_config should come from incoming config');
+  });
+
+  it('honors an incoming free_skills/creator_contact that explicitly overrides the existing values', () => {
+    repoDir = createRepoFixture({
+      skillDirs: ['write-note', 'hook', 'title'],
+      existingSkillstack: {
+        storefront: 'https://store.skillstack.sh/test',
+        plugins: {
+          'analytics-pro': {
+            license_provider: 'polar',
+            license_config: { org_id: TEST_UUID_1 },
+            license_model: 'subscription',
+            free_skills: ['write-note', 'hook'],
+            creator_contact: 'old@example.com',
+          },
+        },
+      },
+    });
+
+    const result = writeSkillstackJson(repoDir, {
+      storefront: 'https://store.skillstack.sh/test',
+      plugins: {
+        'analytics-pro': {
+          license_provider: 'polar',
+          license_config: { org_id: TEST_UUID_1 },
+          license_model: 'subscription',
+          free_skills: ['title'],
+          creator_contact: 'new@example.com',
+        },
+      },
+    });
+
+    assert.equal(result.success, true);
+
+    const written = readSkillstackJson(repoDir);
+    const entry = written.plugins['analytics-pro'];
+    assert.deepEqual(entry.free_skills, ['title'], 'explicit incoming free_skills wins');
+    assert.equal(entry.creator_contact, 'new@example.com', 'explicit incoming creator_contact wins');
+  });
+});
+
 describe('writeSkillstackJson — validation', () => {
   let repoDir;
   afterEach(() => { if (repoDir) cleanup(repoDir); });
