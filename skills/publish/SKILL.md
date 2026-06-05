@@ -134,13 +134,28 @@ Config format — **single license** (binding id goes in `license_config`):
 ```
 (Include only the fields for your provider — Polar: `org_id` + `benefit_id`; Lemon Squeezy: `store_id` + `product_id`.)
 
-For **multi-license**, use `license_options` instead of `license_model` (binding id per tier; `license_config` holds only the account id):
+For **multi-license**, use `license_options` instead of `license_model` (binding id per tier; `license_config` holds only the account id). Keep `license_provider` set, same as the single-license example.
+
+**Polar** (`license_config: { org_id }` + per-tier `benefit_id`):
 ```json
 {
+  "license_provider": "polar",
   "license_config": { "org_id": "<polar org uuid>" },
   "license_options": {
     "onetime": { "benefit_id": "..." },
     "lifetime": { "benefit_id": "..." }
+  }
+}
+```
+
+**Lemon Squeezy** (`license_config: { store_id }` + per-tier `product_id`):
+```json
+{
+  "license_provider": "lemonsqueezy",
+  "license_config": { "store_id": "<ls store id>" },
+  "license_options": {
+    "onetime": { "product_id": "..." },
+    "lifetime": { "product_id": "..." }
   }
 }
 ```
