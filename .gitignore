@@ -1,2 +1,8 @@
 *-test-workspace/
-node_modules/
+# Match both the directory and the symlink a shared-deps worktree leaves behind
+# (a trailing slash matches dirs only, so a `node_modules` symlink would slip
+# through and break CI's frozen install).
+node_modules
+**/node_modules
+# Worktrees live in-repo at .worktrees/<branch> and must stay uncommitted.
+.worktrees/
