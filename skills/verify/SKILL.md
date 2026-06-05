@@ -87,9 +87,16 @@ For each plugin:
    ```bash
    echo '<corrected-config-json>' | node <this-skill-dir>/../../scripts/write-skillstack-json.mjs --repo-dir <repo-root>
    ```
-2. **Valid but drifted** (`canonical` ≠ current `skillstack.json` entry) — write
-   `canonical` verbatim via the same script. For an already-clean config this is a
-   no-op (canonical round-trips to itself), so only real drift changes anything.
+2. **Valid but drifted** — write `canonical` via the same script. The script
+   merges canonical's **license** fields (provider/config/model/options) over the
+   existing entry while **preserving** the plugin's non-license fields
+   (`free_skills` and `creator_contact`), since `canonical` carries only license
+   fields. Judge drift on the **license subset only** — provider + license_config +
+   license_model (or license_options). A plugin that merely has free_skills /
+   creator_contact is NOT drifted just because `canonical` omits them; only a
+   license-subset difference counts as real drift. (This avoids both falsely
+   re-flagging every run and the old data-loss bug where writing `canonical`
+   verbatim stripped those two fields.)
 3. **Free / already canonical** — nothing to do.
 
 After writing, **re-run Step 3.5** (`validate-config.mjs`) and confirm every

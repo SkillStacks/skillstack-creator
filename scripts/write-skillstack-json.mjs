@@ -270,12 +270,20 @@ export function writeSkillstackJson(repoDir, config) {
       entry.license_model = pluginConfig.license_model;
     }
 
-    // Optional fields
-    if (pluginConfig.free_skills) {
-      entry.free_skills = pluginConfig.free_skills;
-    }
-    if (pluginConfig.creator_contact) {
-      entry.creator_contact = pluginConfig.creator_contact;
+    // Non-license fields (free_skills, creator_contact). The worker's `canonical`
+    // config carries only license fields, so when an incoming config is SILENT on
+    // these we preserve the existing values — otherwise migrating a paid plugin to
+    // canonical would strip its free-skill allowlist and creator_contact. An
+    // explicit incoming value (including an empty array / new value) always wins.
+    // License fields (provider/config/model/options) are NOT preserved this way —
+    // they always come from the incoming/canonical config.
+    const existingEntry = existing.plugins?.[name];
+    for (const field of ['free_skills', 'creator_contact']) {
+      if (field in pluginConfig) {
+        if (pluginConfig[field] !== undefined) entry[field] = pluginConfig[field];
+      } else if (existingEntry && field in existingEntry) {
+        entry[field] = existingEntry[field];
+      }
     }
 
     const isNew = !existing.plugins?.[name];
