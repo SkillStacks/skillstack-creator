@@ -108,10 +108,20 @@ plugin is now `valid: true`. Then:
    plugin free. If it would, stop and surface why.
 5. Ask permission, then commit + push `.claude-plugin/skillstack.json` (+ the
    cleaned `marketplace.json`) — this re-publishes through the normal webhook.
-6. **Confirm the push took effect (no silent skip).** Wait ~5s, call
-   `skillstack_creator_stats`, and check each migrated plugin: `last_sync_warning`
-   must be **null** and `license_model` must match the intended paid model. A
-   non-null warning means the sync skipped the plugin — show it and iterate.
+6. **Confirm the push took effect (no silent skip).** **Poll**
+   `skillstack_creator_stats` (retry every few seconds, up to a ~30s cap) until the
+   migrated plugin's row shows `latest_version` **equal to the version you just
+   pushed** (read it from `plugin.json` / `marketplace.json`). Only a row at the
+   just-pushed version is fresh — a slow/never-fired webhook otherwise leaves the
+   PRIOR row (stale version, null warning, old model), a false success, and a
+   brand-new plugin's row is absent.
+   - **Old version still shown (or plugin absent) after the ~30s cap** → not synced
+     yet. Do NOT report success. Tell the creator to check the GitHub App install,
+     that the push reached a tracked ref (default branch), and webhook delivery;
+     re-run once it lands.
+   - **Fresh row** → require `last_sync_warning` **null** and `license_model`
+     matching the intended paid model. A non-null warning means the sync skipped the
+     plugin — show it verbatim and iterate.
 
 Buyers do nothing: existing licenses keep working (identity is stable across the
 edit) and the corrected binding resolves going forward.
