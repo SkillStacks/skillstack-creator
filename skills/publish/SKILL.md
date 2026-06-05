@@ -57,23 +57,36 @@ Ask: **Single license type, or multiple?**
 
 #### 4c: Collect provider IDs
 
+> **Canonical home:** the *binding id* is what a buyer's key resolves on —
+> **`benefit_id` for Polar, `product_id` for Lemon Squeezy**. For a SINGLE-license
+> plugin it goes in `license_config` alongside the account id (the worker relocates
+> it into the license tier automatically). For MULTI-license it goes per tier in
+> `license_options`. `license_config` otherwise holds only the account id
+> (`org_id` / `store_id`).
+
 **Polar (all configs):**
 - **Organization ID** (UUID) — Settings → General
 - Validate UUID format (8-4-4-4-12 hex)
 
 **Polar single license:**
-- **Product ID** (UUID) — Products → click product → URL
-- Confirm License Key benefit exists
+- **Benefit ID** (UUID, optionally `ben_` prefix) — Products → click product →
+  Benefits → the **License Key** benefit. Polar binds keys on the **benefit**, not
+  the product, so this is required for a buyer's key to resolve. (Do NOT use the
+  product id — a Polar plugin bound only on a product_id is unresolvable and the
+  worker will reject it.)
 
 **Polar multi-license:**
-- **Benefit ID** (UUID, `ben_*` prefix) per license type — Products → Benefits
+- **Benefit ID** (UUID, optionally `ben_` prefix) per license type — one distinct
+  License Key benefit per product/tier — Products → Benefits
 
 **Lemon Squeezy (all configs):**
 - **Store ID** (numeric, stored as string in JSON — e.g. `"306756"`) — Settings → General
 - Confirm license key generation enabled
 
 **Lemon Squeezy single:**
-- **Product ID** (optional, numeric, stored as string) — Products → URL
+- **Product ID** (**required** for paid, numeric, stored as string) — Products →
+  URL. A buyer's key resolves on the product, so a paid LS plugin without it is
+  unresolvable and the worker will reject it.
 
 **Lemon Squeezy multi-license:**
 - **Product ID** (required, numeric, stored as string) per license type
@@ -99,25 +112,32 @@ Build the config object from Steps 3-4 and pass to the write script:
 echo '<config-json>' | node <this-skill-dir>/../../scripts/write-skillstack-json.mjs --repo-dir <repo-root>
 ```
 
-Config format:
+Config format — **single license** (binding id goes in `license_config`):
 ```json
 {
   "storefront": "<storefrontUrl from Step 1>",
   "plugins": {
     "<plugin-name>": {
       "license_provider": "<polar|lemonsqueezy>",
-      "license_config": { ... },
-      "license_model": "<type>",
+      "license_config": {
+        "org_id": "<polar org uuid>",        // Polar: org_id + benefit_id
+        "benefit_id": "<polar benefit uuid>",
+        "store_id": "<ls store id>",          // OR Lemon Squeezy: store_id + product_id
+        "product_id": "<ls product id>"
+      },
+      "license_model": "<subscription|onetime|lifetime>",
       "free_skills": ["..."],
       "creator_contact": "..."
     }
   }
 }
 ```
+(Include only the fields for your provider — Polar: `org_id` + `benefit_id`; Lemon Squeezy: `store_id` + `product_id`.)
 
-For multi-license, use `license_options` instead of `license_model`:
+For **multi-license**, use `license_options` instead of `license_model` (binding id per tier; `license_config` holds only the account id):
 ```json
 {
+  "license_config": { "org_id": "<polar org uuid>" },
   "license_options": {
     "onetime": { "benefit_id": "..." },
     "lifetime": { "benefit_id": "..." }
@@ -182,11 +202,17 @@ git push
 
 Explain: pushing triggers a webhook that registers the plugin with SkillStack.
 
-### Step 8: Verify registration
+### Step 8: Verify registration (and confirm no silent downgrade)
 
-Wait ~5 seconds, then call `skillstack_list` MCP tool. Check each plugin appears with correct slug, version, and license model.
+Wait ~5 seconds, then call `skillstack_list`. Check each plugin appears with correct slug, version, and license model.
 
-If missing: check GitHub App install, push went through, and `version` field exists.
+- If the `skillstack_list` call itself errors (parse its `status`/error — it's structured): it's a SkillStack-side or auth issue, not a config problem. Retry once; if it persists, note it and tell the creator to re-run `/verify` shortly — the push may still have registered.
+- If a plugin is **missing**: check GitHub App install, that the push went through, and that the `version` field exists.
+
+Then call `skillstack_creator_stats` and inspect each plugin's `license_model` and `last_sync_warning`:
+- **`last_sync_warning` is non-null** → the last push **skipped** this plugin (its binding didn't take effect). Show the warning verbatim — it names the offending field + fix. Return to Step 4/5 to correct, re-run Step 5.5 validation, and re-push. Do NOT report success.
+- **`license_model` is `free` but the creator configured it as paid** → a silent downgrade. Treat the same as a skip: surface it, fix, re-validate, re-push.
+- Only when every published plugin shows the intended `license_model` and a null `last_sync_warning` is the publish actually confirmed.
 
 ### Step 9: Print summary
 

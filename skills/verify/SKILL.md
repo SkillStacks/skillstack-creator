@@ -63,6 +63,52 @@ the offending field and the exact fix. If the result is `endpointError: true` (e
 (exit 3), the endpoint was genuinely unreachable — note that the binding check could
 not run and continue (the webhook is the backstop).
 
+### Step 3.6: Migrate to the canonical config (if needed)
+
+The `/validate` result (Step 3.5) carries everything needed to **fix** a config,
+not just diagnose it. Each plugin entry has `valid`, `errors[]` (field + exact
+fix), and `canonical` — the corrected authoring config to write verbatim
+(`null` when the plugin is free or still invalid). Offer to migrate when any
+plugin is invalid, or when a valid plugin's `canonical` differs from what's
+currently in `skillstack.json`. This is how a creator with a legacy/broken
+config gets to "just works" without hand-editing.
+
+For each plugin:
+
+1. **Invalid (`valid: false`)** — `canonical` is `null`; the errors tell you the
+   fix. Two kinds:
+   - **Mechanical** (the value exists, just in the wrong place/field): apply it.
+   - **Needs a value only the creator has** (e.g. *"Polar plugins bind on
+     benefit_id, not product_id — replace it"*, or a missing `product_id`): ask
+     the creator for exactly that value, with where to find it (Polar: Products →
+     Benefits → the License Key benefit id; Lemon Squeezy: Products → the product
+     id). Don't guess.
+   Then write the corrected config (Step 5 of `/publish`'s write script):
+   ```bash
+   echo '<corrected-config-json>' | node <this-skill-dir>/../../scripts/write-skillstack-json.mjs --repo-dir <repo-root>
+   ```
+2. **Valid but drifted** (`canonical` ≠ current `skillstack.json` entry) — write
+   `canonical` verbatim via the same script. For an already-clean config this is a
+   no-op (canonical round-trips to itself), so only real drift changes anything.
+3. **Free / already canonical** — nothing to do.
+
+After writing, **re-run Step 3.5** (`validate-config.mjs`) and confirm every
+plugin is now `valid: true`. Then:
+
+4. **Buyer-safety gate before re-publishing.** For any paid plugin, confirm the
+   corrected config is still paid with a real binding (the re-validated result is
+   `valid` and its `canonical` is non-null) — a migration must never turn a paid
+   plugin free. If it would, stop and surface why.
+5. Ask permission, then commit + push `.claude-plugin/skillstack.json` (+ the
+   cleaned `marketplace.json`) — this re-publishes through the normal webhook.
+6. **Confirm the push took effect (no silent skip).** Wait ~5s, call
+   `skillstack_creator_stats`, and check each migrated plugin: `last_sync_warning`
+   must be **null** and `license_model` must match the intended paid model. A
+   non-null warning means the sync skipped the plugin — show it and iterate.
+
+Buyers do nothing: existing licenses keep working (identity is stable across the
+edit) and the corrected binding resolves going forward.
+
 ### Step 4: Verify storefront
 
 Fetch the storefront URL from the state output:
