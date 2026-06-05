@@ -4,6 +4,13 @@ All notable changes to the SkillStack Creator Plugin are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Versioning follows [Semantic Versioning](https://semver.org/).
 
+## [0.7.0] - 2026-06-04
+
+### Added
+- **Pre-publish binding validation** (`scripts/validate-config.mjs`) — `/publish` and `/verify` now validate the license/binding configuration against the worker's `POST /validate` endpoint, which runs the **same** canonicalization the webhook applies at ingestion. An unresolvable or colliding config (e.g. a paid plugin missing its `product_id`, two plugins at one source location, two paid plugins sharing a product) is caught on the creator's machine before a push, instead of silently syncing a plugin a buyer could never activate. Because authoring-time and ingest-time checks call one shared module, they cannot disagree. Errors are AI-actionable — each names the offending field, the exact fix, and a retry instruction — so an agent can correct and re-publish in one pass. If the endpoint is unreachable, validation is skipped with a note and the webhook remains the backstop. (#6)
+  - `/publish` Step 5.5 blocks the push until validation passes.
+  - `/verify` Step 3.5 reports binding errors alongside its existing health checks.
+
 ## [0.6.1] - 2026-05-01
 
 ### Fixed

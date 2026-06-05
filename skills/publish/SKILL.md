@@ -133,6 +133,28 @@ The script handles:
 
 If validation fails, show errors and ask the creator to correct. If fields were cleaned, show what was removed.
 
+### Step 5.5: Pre-publish binding validation
+
+Before pushing, validate the binding configuration against the worker — the same
+canonicalization that runs at ingestion. This catches an unresolvable or colliding
+license config now, on the creator's machine, instead of letting a plugin sync that
+a buyer could never activate.
+
+```bash
+node <this-skill-dir>/../../scripts/validate-config.mjs --repo-dir <repo-root>
+```
+
+Output: `{ valid, plugins: [{ name, valid, errors: [{ field, message }] }], summary }`.
+
+- **`valid: true`** (exit 0) — proceed to Step 6.
+- **`valid: false`** (exit 2) — for each invalid plugin, show its errors. Each error
+  names the offending field and the exact fix. Apply the fix by returning to Step 4
+  (re-collect the affected IDs) and re-running Step 5, then re-validate. Do not push
+  until validation passes.
+- **`unavailable: true`** (exit 3) — the endpoint was unreachable; validation could
+  not run. Note this to the creator and proceed — the webhook re-runs the identical
+  check at ingestion, so it remains the backstop.
+
 ### Step 6: Install GitHub App
 
 > Install the **SkillStack Distribution** GitHub App on this repo. This gives SkillStack **read-only** access to fetch your plugin code and delivers it to buyers.
