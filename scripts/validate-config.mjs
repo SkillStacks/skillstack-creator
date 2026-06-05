@@ -9,6 +9,9 @@
  * before it is ever pushed — and because both seams call one shared module,
  * authoring-time and ingest-time validation cannot disagree.
  *
+ * The endpoint is unauthenticated (the check is pure/stateless and bounded by a
+ * server-side plugin cap), so no token is sent.
+ *
  * Usage:
  *   node validate-config.mjs --repo-dir <path> [--worker-url <url>]
  *
@@ -22,11 +25,19 @@
  *     plugins: [{ name, valid, errors: [{ field, message }] }],
  *     summary: { total, valid, invalid }
  *   }
- *   On a network/endpoint failure (validation could not run), instead:
+ *   On a genuine network failure (the endpoint was unreachable, so validation
+ *   could not run), instead:
  *   { error: string, unavailable: true }   — the webhook remains the backstop.
+ *   On a reachable-but-erroring endpoint (HTTP 4xx/5xx) or a local error:
+ *   { error: string, endpointError: true } — a real failure, surfaced to block.
  *
- * Exit codes: 0 = all valid · 2 = at least one invalid · 1 = script error ·
- *             3 = validation unavailable (network/endpoint error)
+ * Exit codes:
+ *   0 = all valid
+ *   2 = at least one plugin invalid (fix and re-validate before pushing)
+ *   1 = error — local read failure OR the endpoint returned an error status;
+ *       validation did not complete successfully, so do NOT push
+ *   3 = validation unavailable — the endpoint was genuinely unreachable
+ *       (network failure); the webhook is the backstop, so proceeding is safe
  */
 
 import path from 'node:path';
@@ -35,35 +46,30 @@ import { readPluginState } from './read-plugin-state.mjs';
 const DEFAULT_WORKER_URL = 'https://mcp.skillstack.sh';
 
 /**
- * Resolve a plugin's source location within the repo, combining the
- * marketplace-level `pluginRoot` (if any) with the plugin's relative `source`.
- * Mirrors the worker's resolvePluginPath so the location collision anchor is
- * computed identically on both sides.
- */
-export function resolvePluginPath(pluginRoot, source) {
-  const root = pluginRoot ? pluginRoot.replace(/^\.\//, '').replace(/\/+$/, '') : '';
-  const src = source ? source.replace(/^\.\//, '').replace(/\/+$/, '') : '';
-  if (root && src) return `${root}/${src}`;
-  if (root) return root;
-  if (src) return src;
-  return '.';
-}
-
-/**
- * Build the `{ plugins: [...] }` request body from local plugin state.
+ * Build the `/validate` request body from local plugin state.
+ *
+ * The worker (validate.ts) owns path resolution: it expects each plugin's RAW
+ * authored `source` plus the marketplace `pluginRoot` at the TOP LEVEL, and runs
+ * the shared `resolvePluginPath` itself so the location-collision anchor matches
+ * ingestion exactly. We deliberately send the raw values and do NOT resolve here
+ * — a client-resolved `pluginPath` is the wrong contract (the worker 400s on a
+ * missing `source`).
+ *
  * @param {object} localState - Output from readPluginState()
- * @returns {{ plugins: {name, pluginPath, ssConfig}[] }}
+ * @returns {{ pluginRoot?: string, plugins: {name, source, ssConfig}[] }}
  */
 export function buildValidateRequest(localState) {
   const pluginRoot = localState.marketplace?.raw?.metadata?.pluginRoot;
   const plugins = Object.entries(localState.marketplace?.plugins ?? {}).map(
     ([name, info]) => ({
       name,
-      pluginPath: resolvePluginPath(pluginRoot, info.source),
+      source: info.source,
       ssConfig: localState.skillstack?.plugins?.[name],
     })
   );
-  return { plugins };
+  const body = { plugins };
+  if (pluginRoot !== undefined) body.pluginRoot = pluginRoot;
+  return body;
 }
 
 /**
@@ -74,12 +80,27 @@ export function buildValidateRequest(localState) {
  */
 export async function validateConfig(localState, workerUrl) {
   const body = buildValidateRequest(localState);
-  const res = await fetch(`${workerUrl.replace(/\/+$/, '')}/validate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  let res;
+  try {
+    res = await fetch(`${workerUrl.replace(/\/+$/, '')}/validate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  } catch (networkErr) {
+    // `fetch` itself rejected — DNS failure, connection refused, offline. The
+    // endpoint was genuinely unreachable, so validation could not run and the
+    // webhook remains the backstop. Tag it so the CLI maps this (and ONLY this)
+    // to the "unavailable / proceed" path.
+    const err = new Error(`Could not reach validation endpoint: ${networkErr.message}`);
+    err.networkFailure = true;
+    throw err;
+  }
   if (!res.ok) {
+    // A response came back with an error status (400/401/500…). The endpoint is
+    // reachable but rejected the request — a real, blocking problem. It is NOT
+    // tagged networkFailure, so the CLI surfaces it as an error rather than
+    // silently downgrading it to the backstop-skip.
     const text = await res.text().catch(() => '');
     throw new Error(`Validation endpoint returned ${res.status}: ${text.slice(0, 200)}`);
   }
@@ -126,9 +147,17 @@ if (isDirectExecution) {
     console.log(JSON.stringify(result, null, 2));
     process.exit(result.valid ? 0 : 2);
   } catch (err) {
-    // The endpoint was unreachable — validation could not run. The webhook
-    // remains the backstop, so surface this without blocking hard.
-    console.log(JSON.stringify({ error: err.message, unavailable: true }, null, 2));
-    process.exit(3);
+    if (err.networkFailure) {
+      // The endpoint was genuinely unreachable — validation could not run. The
+      // webhook re-runs the identical check at ingestion, so it remains the
+      // backstop; surface this without blocking hard.
+      console.log(JSON.stringify({ error: err.message, unavailable: true }, null, 2));
+      process.exit(3);
+    }
+    // A reachable endpoint returned an error status (or another error occurred).
+    // This is a real failure, NOT a network outage — do not pass it off as the
+    // backstop-skip. Block so the creator resolves it before pushing.
+    console.error(JSON.stringify({ error: err.message, endpointError: true }, null, 2));
+    process.exit(1);
   }
 }
