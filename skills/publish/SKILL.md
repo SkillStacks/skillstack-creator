@@ -224,14 +224,16 @@ Wait ~5 seconds, then call `skillstack_list`. Check each plugin appears with cor
 - If the `skillstack_list` call itself errors (parse its `status`/error — it's structured): it's a SkillStack-side or auth issue, not a config problem. Retry once; if it persists, note it and tell the creator to re-run `/verify` shortly — the push may still have registered.
 - If a plugin is **missing**: check GitHub App install, that the push went through, and that the `version` field exists.
 
-Then confirm the push actually synced before judging it. **Poll** `skillstack_creator_stats` (retry every few seconds, up to a ~30s cap) until the published plugin's row shows `latest_version` **equal to the version you just pushed** (read that version from `plugin.json` / `marketplace.json`). Only a row at the just-pushed version is "fresh" — a slow or never-fired webhook otherwise leaves the PRIOR row (stale version, null warning, old model), which would read as a false success, and a brand-new plugin's row is absent entirely.
+Then confirm the push actually synced before judging it. The freshness signal lives in `skillstack_list` — its rows carry `latest_version` per plugin, which a successful webhook bumps to the just-pushed version (and clears that plugin's `last_sync_warning`). `skillstack_creator_stats` does NOT report `latest_version`; use it only for the warning/model check below.
 
-- **Row still shows the OLD version (or the plugin is absent) after the ~30s cap** → the push has **not synced yet**. Do NOT report success. Tell the creator to check: the SkillStack Distribution GitHub App is installed on this repo, the push reached a tracked ref (default branch), and the webhook delivered. Re-run `/verify` once the webhook lands.
+**Poll** `skillstack_list` (retry every few seconds, up to a ~30s cap) until the published plugin's `latest_version` is **equal to the version you just pushed** (read that version from `plugin.json` / `marketplace.json`). A slow or never-fired webhook otherwise leaves `latest_version` at the PRIOR value (or, for a brand-new plugin, the plugin absent entirely), which would read as a false success.
 
-Once the row is fresh, inspect that plugin's `license_model` and `last_sync_warning`:
+- **`latest_version` still the OLD value (or the plugin is absent) after the ~30s cap** → the push has **not synced yet**. Do NOT report success. Also call `skillstack_creator_stats` for this plugin: if its `last_sync_warning` is non-null, the push **skipped** the plugin — show the warning verbatim (it names the offending field + fix), return to Step 4/5 to correct, re-run Step 5.5 validation, and re-push. Otherwise (no warning) tell the creator to check the SkillStack Distribution GitHub App is installed on this repo, the push reached a tracked ref (default branch), and webhook delivery; re-run `/verify` once the webhook lands.
+
+Once `latest_version` matches, call `skillstack_creator_stats` for that plugin and inspect its `license_model` and `last_sync_warning`:
 - **`last_sync_warning` is non-null** → the last push **skipped** this plugin (its binding didn't take effect). Show the warning verbatim — it names the offending field + fix. Return to Step 4/5 to correct, re-run Step 5.5 validation, and re-push. Do NOT report success.
 - **`license_model` is `free` but the creator configured it as paid** → a silent downgrade. Treat the same as a skip: surface it, fix, re-validate, re-push.
-- Only when the fresh row shows the intended `license_model` and a null `last_sync_warning` is the publish actually confirmed.
+- Only when `latest_version` is fresh AND the stats row shows the intended `license_model` and a null `last_sync_warning` is the publish actually confirmed.
 
 ### Step 9: Print summary
 

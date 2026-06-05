@@ -108,20 +108,24 @@ plugin is now `valid: true`. Then:
    plugin free. If it would, stop and surface why.
 5. Ask permission, then commit + push `.claude-plugin/skillstack.json` (+ the
    cleaned `marketplace.json`) — this re-publishes through the normal webhook.
-6. **Confirm the push took effect (no silent skip).** **Poll**
-   `skillstack_creator_stats` (retry every few seconds, up to a ~30s cap) until the
-   migrated plugin's row shows `latest_version` **equal to the version you just
-   pushed** (read it from `plugin.json` / `marketplace.json`). Only a row at the
-   just-pushed version is fresh — a slow/never-fired webhook otherwise leaves the
-   PRIOR row (stale version, null warning, old model), a false success, and a
-   brand-new plugin's row is absent.
-   - **Old version still shown (or plugin absent) after the ~30s cap** → not synced
-     yet. Do NOT report success. Tell the creator to check the GitHub App install,
-     that the push reached a tracked ref (default branch), and webhook delivery;
-     re-run once it lands.
-   - **Fresh row** → require `last_sync_warning` **null** and `license_model`
-     matching the intended paid model. A non-null warning means the sync skipped the
-     plugin — show it verbatim and iterate.
+6. **Confirm the push took effect (no silent skip).** The freshness signal is
+   `latest_version`, which `skillstack_list` reports per plugin (NOT
+   `skillstack_creator_stats`); a successful webhook bumps it to the just-pushed
+   version. **Poll** `skillstack_list` (retry every few seconds, up to a ~30s cap)
+   until the migrated plugin's `latest_version` is **equal to the version you just
+   pushed** (read it from `plugin.json` / `marketplace.json`). A slow/never-fired
+   webhook otherwise leaves `latest_version` at the PRIOR value (or, for a brand-new
+   plugin, the plugin absent), which would read as a false success.
+   - **`latest_version` still the old value (or plugin absent) after the ~30s cap** →
+     not synced yet. Do NOT report success. Also call `skillstack_creator_stats` for
+     this plugin: if its `last_sync_warning` is non-null the push skipped the plugin —
+     show it verbatim and iterate; otherwise tell the creator to check the GitHub App
+     install, that the push reached a tracked ref (default branch), and webhook
+     delivery, then re-run once it lands.
+   - **`latest_version` matches** → call `skillstack_creator_stats` for the plugin and
+     require `last_sync_warning` **null** and `license_model` matching the intended
+     paid model. A non-null warning means the sync skipped the plugin — show it
+     verbatim and iterate.
 
 Buyers do nothing: existing licenses keep working (identity is stable across the
 edit) and the corrected binding resolves going forward.
