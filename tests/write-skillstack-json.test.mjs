@@ -88,7 +88,7 @@ describe('writeSkillstackJson — basic write', () => {
       plugins: {
         'analytics-pro': {
           license_provider: 'polar',
-          license_config: { org_id: '0c504f49-dbdd-496a-8a36-72ce2a94d97f', product_id: '11297490-6b02-4468-8968-1813b187343d' },
+          license_config: { org_id: '0c504f49-dbdd-496a-8a36-72ce2a94d97f', benefit_id: TEST_BEN_1 },
           license_model: 'subscription',
         },
       },
@@ -101,6 +101,7 @@ describe('writeSkillstackJson — basic write', () => {
     assert.equal(written.plugins['analytics-pro'].license_provider, 'polar');
     assert.equal(written.plugins['analytics-pro'].license_model, 'subscription');
     assert.equal(written.plugins['analytics-pro'].license_config.org_id, '0c504f49-dbdd-496a-8a36-72ce2a94d97f');
+    assert.equal(written.plugins['analytics-pro'].license_config.benefit_id, TEST_BEN_1);
   });
 
   it('returns the written content in the result', () => {
@@ -111,7 +112,7 @@ describe('writeSkillstackJson — basic write', () => {
       plugins: {
         'analytics-pro': {
           license_provider: 'polar',
-          license_config: { org_id: TEST_UUID_1 },
+          license_config: { org_id: TEST_UUID_1, benefit_id: TEST_BEN_1 },
           license_model: 'subscription',
         },
       },
@@ -140,7 +141,7 @@ describe('writeSkillstackJson — merging with existing', () => {
         plugins: {
           'existing-plugin': {
             license_provider: 'polar',
-            license_config: { org_id: TEST_UUID_1 },
+            license_config: { org_id: TEST_UUID_1, benefit_id: TEST_BEN_1 },
             license_model: 'lifetime',
           },
         },
@@ -174,7 +175,7 @@ describe('writeSkillstackJson — merging with existing', () => {
         plugins: {
           'analytics-pro': {
             license_provider: 'polar',
-            license_config: { org_id: TEST_UUID_1 },
+            license_config: { org_id: TEST_UUID_1, benefit_id: TEST_BEN_1 },
             license_model: 'subscription',
           },
         },
@@ -213,7 +214,7 @@ describe('writeSkillstackJson — merging with existing', () => {
       plugins: {
         'analytics-pro': {
           license_provider: 'polar',
-          license_config: { org_id: TEST_UUID_1 },
+          license_config: { org_id: TEST_UUID_1, benefit_id: TEST_BEN_1 },
           license_model: 'subscription',
         },
       },
@@ -267,7 +268,7 @@ describe('writeSkillstackJson — freemium', () => {
       plugins: {
         'analytics-pro': {
           license_provider: 'polar',
-          license_config: { org_id: TEST_UUID_1 },
+          license_config: { org_id: TEST_UUID_1, benefit_id: TEST_BEN_1 },
           license_model: 'subscription',
           free_skills: ['write-note', 'hook'],
         },
@@ -286,7 +287,7 @@ describe('writeSkillstackJson — freemium', () => {
       plugins: {
         'analytics-pro': {
           license_provider: 'polar',
-          license_config: { org_id: TEST_UUID_1 },
+          license_config: { org_id: TEST_UUID_1, benefit_id: TEST_BEN_1 },
           license_model: 'subscription',
           creator_contact: 'support@example.com',
         },
@@ -313,7 +314,7 @@ describe('writeSkillstackJson — stale field cleanup', () => {
             source: '.',
             description: 'test',
             license_provider: 'polar',
-            license_config: { org_id: TEST_UUID_1 },
+            license_config: { org_id: TEST_UUID_1, benefit_id: TEST_BEN_1 },
             license_model: 'subscription',
             creator_contact: 'old@email.com',
           },
@@ -326,7 +327,7 @@ describe('writeSkillstackJson — stale field cleanup', () => {
       plugins: {
         'analytics-pro': {
           license_provider: 'polar',
-          license_config: { org_id: TEST_UUID_3 },
+          license_config: { org_id: TEST_UUID_3, benefit_id: TEST_BEN_1 },
           license_model: 'subscription',
         },
       },
@@ -361,7 +362,7 @@ describe('writeSkillstackJson — stale field cleanup', () => {
       plugins: {
         'analytics-pro': {
           license_provider: 'polar',
-          license_config: { org_id: TEST_UUID_1 },
+          license_config: { org_id: TEST_UUID_1, benefit_id: TEST_BEN_1 },
           license_model: 'subscription',
         },
       },
@@ -394,7 +395,7 @@ describe('writeSkillstackJson — stale field cleanup', () => {
       plugins: {
         'analytics-pro': {
           license_provider: 'polar',
-          license_config: { org_id: TEST_UUID_1 },
+          license_config: { org_id: TEST_UUID_1, benefit_id: TEST_BEN_1 },
           license_model: 'subscription',
         },
       },
@@ -416,7 +417,7 @@ describe('writeSkillstackJson — stale field cleanup', () => {
       plugins: {
         'analytics-pro': {
           license_provider: 'polar',
-          license_config: { org_id: TEST_UUID_1 },
+          license_config: { org_id: TEST_UUID_1, benefit_id: TEST_BEN_1 },
           license_model: 'subscription',
         },
       },
@@ -440,7 +441,7 @@ describe('writeSkillstackJson — canonical-config preservation', () => {
         plugins: {
           'analytics-pro': {
             license_provider: 'polar',
-            license_config: { org_id: TEST_UUID_1 },
+            license_config: { org_id: TEST_UUID_1, benefit_id: TEST_BEN_1 },
             license_model: 'subscription',
             free_skills: ['write-note', 'hook'],
             creator_contact: 'support@example.com',
@@ -480,7 +481,7 @@ describe('writeSkillstackJson — canonical-config preservation', () => {
         plugins: {
           'analytics-pro': {
             license_provider: 'polar',
-            license_config: { org_id: TEST_UUID_1 },
+            license_config: { org_id: TEST_UUID_1, benefit_id: TEST_BEN_1 },
             license_model: 'subscription',
             free_skills: ['write-note', 'hook'],
             creator_contact: 'old@example.com',
@@ -494,7 +495,7 @@ describe('writeSkillstackJson — canonical-config preservation', () => {
       plugins: {
         'analytics-pro': {
           license_provider: 'polar',
-          license_config: { org_id: TEST_UUID_1 },
+          license_config: { org_id: TEST_UUID_1, benefit_id: TEST_BEN_1 },
           license_model: 'subscription',
           free_skills: ['title'],
           creator_contact: 'new@example.com',
@@ -533,7 +534,7 @@ describe('writeSkillstackJson — validation', () => {
     assert.ok(result.validationErrors.some(e => e.includes('org_id')));
   });
 
-  it('validates UUID format for Polar product_id', () => {
+  it('rejects Polar product_id because Polar binds on benefit_id', () => {
     repoDir = createRepoFixture();
 
     const result = writeSkillstackJson(repoDir, {
@@ -548,7 +549,7 @@ describe('writeSkillstackJson — validation', () => {
     });
 
     assert.equal(result.success, false);
-    assert.ok(result.validationErrors.some(e => e.includes('product_id')));
+    assert.ok(result.validationErrors.some(e => e.includes('benefit_id') && e.includes('not product_id')));
   });
 
   it('validates integer for Lemon Squeezy store_id', () => {
@@ -577,7 +578,7 @@ describe('writeSkillstackJson — validation', () => {
       plugins: {
         'analytics-pro': {
           license_provider: 'polar',
-          license_config: { org_id: '0c504f49-dbdd-496a-8a36-72ce2a94d97f' },
+          license_config: { org_id: '0c504f49-dbdd-496a-8a36-72ce2a94d97f', benefit_id: TEST_BEN_1 },
           license_model: 'invalid_type',
         },
       },
@@ -615,7 +616,7 @@ describe('writeSkillstackJson — validation', () => {
       plugins: {
         'analytics-pro': {
           license_provider: 'polar',
-          license_config: { org_id: '0c504f49-dbdd-496a-8a36-72ce2a94d97f' },
+          license_config: { org_id: '0c504f49-dbdd-496a-8a36-72ce2a94d97f', benefit_id: TEST_BEN_1 },
           license_model: 'subscription',
           license_options: {
             onetime: { benefit_id: TEST_BEN_1 },
@@ -627,6 +628,48 @@ describe('writeSkillstackJson — validation', () => {
 
     assert.equal(result.success, false);
     assert.ok(result.validationErrors.some(e => e.includes('license_model') && e.includes('license_options')));
+  });
+
+  it('requires benefit_id for each Polar multi-license type', () => {
+    repoDir = createRepoFixture();
+
+    const result = writeSkillstackJson(repoDir, {
+      storefront: 'https://store.skillstack.sh/test',
+      plugins: {
+        'analytics-pro': {
+          license_provider: 'polar',
+          license_config: { org_id: '0c504f49-dbdd-496a-8a36-72ce2a94d97f' },
+          license_options: {
+            onetime: { benefit_id: TEST_BEN_1 },
+            lifetime: {},
+          },
+        },
+      },
+    });
+
+    assert.equal(result.success, false);
+    assert.ok(result.validationErrors.some(e => e.includes('lifetime') && e.includes('benefit_id')));
+  });
+
+  it('rejects product_id for Polar multi-license types', () => {
+    repoDir = createRepoFixture();
+
+    const result = writeSkillstackJson(repoDir, {
+      storefront: 'https://store.skillstack.sh/test',
+      plugins: {
+        'analytics-pro': {
+          license_provider: 'polar',
+          license_config: { org_id: '0c504f49-dbdd-496a-8a36-72ce2a94d97f' },
+          license_options: {
+            onetime: { benefit_id: TEST_BEN_1 },
+            lifetime: { product_id: '11297490-6b02-4468-8968-1813b187343d' },
+          },
+        },
+      },
+    });
+
+    assert.equal(result.success, false);
+    assert.ok(result.validationErrors.some(e => e.includes('license_options.lifetime') && e.includes('benefit_id') && e.includes('not product_id')));
   });
 
   it('validates Polar benefit_id UUID format for multi-license', () => {
@@ -678,7 +721,7 @@ describe('writeSkillstackJson — validation', () => {
       plugins: {
         'analytics-pro': {
           license_provider: 'polar',
-          license_config: { org_id: '0c504f49-dbdd-496a-8a36-72ce2a94d97f' },
+          license_config: { org_id: '0c504f49-dbdd-496a-8a36-72ce2a94d97f', benefit_id: TEST_BEN_1 },
           license_model: 'subscription',
           creator_contact: 'just some text',
         },
@@ -697,7 +740,7 @@ describe('writeSkillstackJson — validation', () => {
       plugins: {
         'analytics-pro': {
           license_provider: 'polar',
-          license_config: { org_id: '0c504f49-dbdd-496a-8a36-72ce2a94d97f' },
+          license_config: { org_id: '0c504f49-dbdd-496a-8a36-72ce2a94d97f', benefit_id: TEST_BEN_1 },
           license_model: 'subscription',
           creator_contact: 'support@example.com',
         },
@@ -715,7 +758,7 @@ describe('writeSkillstackJson — validation', () => {
       plugins: {
         'analytics-pro': {
           license_provider: 'polar',
-          license_config: { org_id: '0c504f49-dbdd-496a-8a36-72ce2a94d97f' },
+          license_config: { org_id: '0c504f49-dbdd-496a-8a36-72ce2a94d97f', benefit_id: TEST_BEN_1 },
           license_model: 'subscription',
           creator_contact: 'https://discord.gg/example',
         },
@@ -738,7 +781,7 @@ describe('writeSkillstackJson — changes summary', () => {
       plugins: {
         'analytics-pro': {
           license_provider: 'polar',
-          license_config: { org_id: '0c504f49-dbdd-496a-8a36-72ce2a94d97f' },
+          license_config: { org_id: '0c504f49-dbdd-496a-8a36-72ce2a94d97f', benefit_id: TEST_BEN_1 },
           license_model: 'subscription',
         },
       },
