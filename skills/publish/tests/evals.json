@@ -21,13 +21,13 @@
     },
     {
       "id": 2,
-      "prompt": "I want to publish my plugin as a paid plugin using Polar with a subscription license model. My Polar org ID is 0c504f49-dbdd-496a-8a36-72ce2a94d97f and product ID is 11297490-6b02-4468-8968-1813b187343d. The plugin is called 'analytics-pro' at version 2.0.0.",
-      "expected_output": "Skill collects Polar credentials, validates UUID format, writes skillstack.json with license_provider and license_config, offers free tier and creator contact",
+      "prompt": "I want to publish my plugin as a paid plugin using Polar with a subscription license model. My Polar org ID is 0c504f49-dbdd-496a-8a36-72ce2a94d97f and License Key benefit ID is ben_11297490-6b02-4468-8968-1813b187343d. The plugin is called 'analytics-pro' at version 2.0.0.",
+      "expected_output": "Skill collects Polar credentials, validates benefit ID format, writes skillstack.json with license_provider and license_config, offers free tier and creator contact",
       "expectations": [
         "Asks which payment provider (Polar or Lemon Squeezy)",
         "Asks about single vs multi-license type",
         "Collects Polar org_id in UUID format",
-        "Collects Polar product_id in UUID format",
+        "Collects Polar benefit_id in UUID or ben_UUID format",
         "Asks about License Key benefit configuration",
         "Writes config to .claude-plugin/skillstack.json (NOT marketplace.json)",
         "Config includes license_provider: polar and license_model: subscription",

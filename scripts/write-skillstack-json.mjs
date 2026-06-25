@@ -12,7 +12,7 @@
  *     plugins: {
  *       "my-plugin": {
  *         license_provider: "polar" | "lemonsqueezy",
- *         license_config: { org_id?, product_id?, store_id? },
+ *         license_config: { org_id?, benefit_id?, store_id?, product_id? },
  *         license_model?: "subscription" | "onetime" | "lifetime",
  *         license_options?: { [type]: { benefit_id? | product_id? } },
  *         free_skills?: string[],
@@ -136,22 +136,33 @@ function validatePolarConfig(name, config, errors) {
     errors.push(`${name}: Polar org_id must be UUID format (got "${lc.org_id}")`);
   }
 
-  // product_id optional but must be UUID if present
-  if (lc.product_id && !UUID_REGEX.test(lc.product_id)) {
-    errors.push(`${name}: Polar product_id must be UUID format (got "${lc.product_id}")`);
+  if (lc.product_id) {
+    errors.push(`${name}: Polar single-license binding requires benefit_id, not product_id`);
+  }
+
+  if (!config.license_options) {
+    if (!lc.benefit_id) {
+      errors.push(`${name}: Polar requires benefit_id in license_config for single-license plugins`);
+    } else {
+      validatePolarBenefitId(name, 'license_config', lc.benefit_id, errors);
+    }
   }
 
   // Multi-license: validate benefit_ids
   if (config.license_options) {
     for (const [type, opts] of Object.entries(config.license_options)) {
       if (opts.benefit_id) {
-        const isUuid = UUID_REGEX.test(opts.benefit_id);
-        const isBenUuid = BEN_UUID_REGEX.test(opts.benefit_id);
-        if (!isUuid && !isBenUuid) {
-          errors.push(`${name}: Polar benefit_id for "${type}" must be UUID or ben_UUID format (got "${opts.benefit_id}")`);
-        }
+        validatePolarBenefitId(name, `license_options.${type}`, opts.benefit_id, errors);
       }
     }
+  }
+}
+
+function validatePolarBenefitId(name, location, benefitId, errors) {
+  const isUuid = UUID_REGEX.test(benefitId);
+  const isBenUuid = BEN_UUID_REGEX.test(benefitId);
+  if (!isUuid && !isBenUuid) {
+    errors.push(`${name}: Polar benefit_id in ${location} must be UUID or ben_UUID format (got "${benefitId}")`);
   }
 }
 
