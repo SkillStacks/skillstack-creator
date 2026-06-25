@@ -630,6 +630,48 @@ describe('writeSkillstackJson — validation', () => {
     assert.ok(result.validationErrors.some(e => e.includes('license_model') && e.includes('license_options')));
   });
 
+  it('requires benefit_id for each Polar multi-license type', () => {
+    repoDir = createRepoFixture();
+
+    const result = writeSkillstackJson(repoDir, {
+      storefront: 'https://store.skillstack.sh/test',
+      plugins: {
+        'analytics-pro': {
+          license_provider: 'polar',
+          license_config: { org_id: '0c504f49-dbdd-496a-8a36-72ce2a94d97f' },
+          license_options: {
+            onetime: { benefit_id: TEST_BEN_1 },
+            lifetime: {},
+          },
+        },
+      },
+    });
+
+    assert.equal(result.success, false);
+    assert.ok(result.validationErrors.some(e => e.includes('lifetime') && e.includes('benefit_id')));
+  });
+
+  it('rejects product_id for Polar multi-license types', () => {
+    repoDir = createRepoFixture();
+
+    const result = writeSkillstackJson(repoDir, {
+      storefront: 'https://store.skillstack.sh/test',
+      plugins: {
+        'analytics-pro': {
+          license_provider: 'polar',
+          license_config: { org_id: '0c504f49-dbdd-496a-8a36-72ce2a94d97f' },
+          license_options: {
+            onetime: { benefit_id: TEST_BEN_1 },
+            lifetime: { product_id: '11297490-6b02-4468-8968-1813b187343d' },
+          },
+        },
+      },
+    });
+
+    assert.equal(result.success, false);
+    assert.ok(result.validationErrors.some(e => e.includes('license_options.lifetime') && e.includes('benefit_id') && e.includes('not product_id')));
+  });
+
   it('validates Polar benefit_id UUID format for multi-license', () => {
     repoDir = createRepoFixture();
 

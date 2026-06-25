@@ -137,7 +137,7 @@ function validatePolarConfig(name, config, errors) {
   }
 
   if (lc.product_id) {
-    errors.push(`${name}: Polar single-license binding requires benefit_id, not product_id`);
+    errors.push(`${name}: Polar binds on benefit_id, not product_id; remove product_id from license_config`);
   }
 
   if (!config.license_options) {
@@ -148,11 +148,17 @@ function validatePolarConfig(name, config, errors) {
     }
   }
 
-  // Multi-license: validate benefit_ids
+  // Multi-license: require and validate benefit_ids
   if (config.license_options) {
     for (const [type, opts] of Object.entries(config.license_options)) {
-      if (opts.benefit_id) {
-        validatePolarBenefitId(name, `license_options.${type}`, opts.benefit_id, errors);
+      const location = `license_options.${type}`;
+      if (opts.product_id) {
+        errors.push(`${name}: Polar ${location} requires benefit_id, not product_id`);
+      }
+      if (!opts.benefit_id) {
+        errors.push(`${name}: Polar benefit_id is required in ${location}`);
+      } else {
+        validatePolarBenefitId(name, location, opts.benefit_id, errors);
       }
     }
   }
